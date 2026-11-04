@@ -1,100 +1,67 @@
 /*
-  Product listing (category) toolbar — a single rounded bar: filter show/hide at
-  the start, product count · grid/list switch · styled sort at the end.
+  Product listing (category / search / brand / offers) — ported from TALLAH's
+  `product/index.twig`, `AR-Index.scss` and the inline mobile grid switch.
   Markup: app/components/product/ProductListPage.tsx
 */
-.s-catalog-toolbar {
-  @apply mb-6 flex min-h-[3.25rem] flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-full border border-gray-200 bg-white px-3;
 
-  &__group {
-    @apply flex items-center;
+/* --- toolbar ---------------------------------------------------------------- */
+.AR-index {
+  @apply bg-background;
+
+  .tallah-list-sort {
+    width: auto;
+    @apply h-fit min-w-[10rem] border-none bg-transparent py-1 text-sm md:min-w-[200px];
+    box-shadow: none;
   }
 
-  /* pushes the options group to the far end when there is no filter group */
-  &__options {
-    @apply ms-auto divide-x rtl:divide-x-reverse divide-gray-200;
-  }
+  /* filter trigger (phones / tablets): the Twig `.filters-trigger` box */
+  .filters-trigger {
+    @apply items-center justify-center border border-primary p-1.5 text-primary;
+    display: inline-flex;
 
-  &__filters {
-    @apply gap-1;
-  }
-
-  &__count {
-    @apply whitespace-nowrap px-4 text-sm text-gray-500;
-  }
-
-  &__views {
-    @apply flex items-center gap-1 px-3;
-
-    button {
-      @apply inline-flex h-8 w-8 items-center justify-center rounded text-gray-400 transition-colors hover:text-gray-700;
-
-      svg {
-        @apply h-[18px] w-[18px];
-      }
-
-      &[aria-pressed='true'] {
-        @apply bg-gray-100 text-gray-900;
-      }
+    @media (min-width: 1024px) {
+      display: none;
     }
-  }
-
-  &__sort {
-    /* raw `cursor: pointer` — the `.cursor-pointer` utility also sets
-       `pointer-events: none` on every child (common.scss), which would stop the
-       overlaid <select> from opening. */
-    @apply relative flex items-center gap-1.5 whitespace-nowrap px-4 text-sm text-gray-700;
-    cursor: pointer;
-
-    svg {
-      @apply h-4 w-4 shrink-0 text-gray-400;
-    }
-
-    select {
-      @apply absolute inset-0 h-full w-full opacity-0;
-      cursor: pointer;
-      pointer-events: auto;
-    }
-  }
-
-  &__filters-toggle {
-    @apply h-9 items-center gap-2 rounded-full px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100;
-
-    svg {
-      @apply h-[18px] w-[18px] text-gray-400;
-    }
-  }
-
-  &__filters-trigger {
-    @apply inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100;
 
     svg {
       @apply h-5 w-5;
     }
   }
+
+  .two-columns,
+  .one-column {
+    @apply leading-none opacity-50 transition-all duration-300 ease-in-out;
+
+    &.active {
+      @apply opacity-100;
+    }
+
+    &.one-column {
+      margin-top: -5px;
+    }
+  }
 }
 
-/*
-  Filter widgets — the engine gives each `.s-filters-widget-container` 1.25rem of
-  top + bottom padding *and* a 1.25rem bottom margin, so the collapsed accordion
-  sections sit far apart. Tighten to a compact divided list.
-*/
-#filters-menu,
-#filters-menu-mobile {
-  .s-filters-widget-container {
-    @apply border-b border-gray-100 py-3.5;
-    margin-bottom: 0;
+/* --- grid ------------------------------------------------------------------- */
+.s-products-list-wrapper.s-products-list-filters-results {
+  @apply gap-2;
+}
 
-    &:last-child {
-      @apply border-b-0;
-    }
+/* Phones / tablets: the 1 / 2 column switch (the Twig `grid-cols-1` / `grid-cols-2`). */
+@media (max-width: 1023px) {
+  .s-products-list-wrapper.s-products-list-vertical-cards.tallah-list-grid.tallah-list-grid--one-column {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .s-products-list-wrapper.s-products-list-vertical-cards.tallah-list-grid.tallah-list-grid--two-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 /*
   Filter-less lists (offers, etc.) — no sidebar, so the grid takes the full
   row: 5 columns on desktop. Tablet/mobile fall through to the base grid
-  (`home-blocks.scss`): 4 columns >= 768px, 2 below.
+  (`home-blocks.scss`).
 */
 .s-products-list-wrapper.s-products-list-vertical-cards.s-products-list-cols-5 {
   @media (min-width: 1024px) {
@@ -102,86 +69,76 @@
   }
 }
 
-/*
-  List view — the engine's horizontal product card. Space the image off the
-  content and make the add-to-cart solid + pill, matching the grid card.
-*/
-.s-products-list-horizontal-cards .s-product-card-horizontal {
-  @apply gap-4 overflow-hidden rounded border border-gray-100 sm:gap-6;
+/* --- filters (AR-Index.scss) ------------------------------------------------- */
+#filters-menu,
+#filters-menu-mobile {
+  .s-filters-widget-container {
+    @apply m-0 rounded-none border-b border-gray-100 bg-transparent px-2 py-4 lg:px-0;
+    margin-bottom: 0;
 
-  .s-product-card-content {
-    @apply py-3 rtl:pl-4 ltr:pr-4;
+    &:last-child {
+      @apply border-b-0;
+    }
   }
 
-  /* solid, pill add-to-cart (engine renders it fill="outline") */
-  salla-add-product-button {
-    .s-button-btn,
-    .s-button-element {
-      @apply rounded-full border-primary bg-primary text-primary-reverse;
+  .s-filters-footer {
+    padding: 32px 0 0;
+
+    salla-button .s-button-element {
+      @apply rounded-none border border-primary bg-primary text-background;
     }
 
-    .s-button-btn:hover,
-    .s-button-element:hover {
-      @apply border-primary-d bg-primary-d text-primary-reverse opacity-100;
+    salla-button .s-button-element:hover {
+      @apply border-background bg-primary text-background opacity-100;
     }
+
+    .s-button-element .s-button-text {
+      @apply p-1 text-background;
+    }
+  }
+
+  .s-filters-widget-more {
+    @apply m-0 border border-primary bg-primary px-4 py-2 text-center text-background;
+  }
+
+  .s-filters-widget-more:hover {
+    @apply bg-background text-primary;
+  }
+
+  .s-filters-radio {
+    @apply border-primary;
+  }
+
+  .s-filters-option-name {
+    @apply p-1 text-font;
+  }
+
+  .s-price-range-number-input {
+    @apply rounded-none border-primary bg-background;
+  }
+
+  .s-price-range-number-input::placeholder,
+  .s-price-range-currency {
+    @apply text-primary;
+  }
+
+  .s-price-range-inputs .s-button-element.s-button-icon {
+    @apply border-primary bg-primary text-background;
+  }
+
+  /* +/- accordion marker: the Twig theme swaps the plus for a chevron */
+  .s-filters-widget-plusminus::before {
+    @apply hidden;
+  }
+
+  .s-filters-widget-plusminus::after {
+    @apply text-xl font-light text-font opacity-100;
+    content: '\e96e';
+    font-family: 'sallaicons' !important;
+    background-color: transparent;
   }
 }
 
-/* Phones: the toolbar pins under the sticky title bar (`.mobile-page-title`,
-   3rem) once it reaches it, slides out of view while the page scrolls down and
-   back in when it scrolls up. `ProductListPage.tsx` (`MobileStickyToolbar`)
-   sets `is-stuck` / `is-hidden`. Its white band keeps the products from
-   showing behind the bar; its padding is taken back with a negative top
-   margin, so in its own place the layout is unchanged. */
-@media (max-width: 767px) {
-  .s-catalog-toolbar-sticky {
-    @apply sticky z-20 -mx-2.5 -mt-2 mb-4 bg-white px-2.5;
-    top: calc(var(--app-safe-area-top, 0px) + 3rem);
-    transition:
-      transform 0.25s ease,
-      box-shadow 0.25s ease;
-
-    /* No rounded box on phones: the filter button and grid/list switch at the
-       start, the sort (and count) at the end. The options group is unwrapped
-       so its items can sit on either side. */
-    .s-catalog-toolbar {
-      @apply mb-0 flex-nowrap rounded-none border-0 px-0;
-      /* A slimmer bar than the desktop's 3.25rem: the 32px view buttons plus 6px
-         above and below. */
-      min-height: 2.75rem;
-    }
-
-    /* its divider lines went with the items it separated */
-    .s-catalog-toolbar__options {
-      @apply divide-x-0;
-      display: contents;
-    }
-
-    .s-catalog-toolbar__views {
-      @apply order-1 px-0;
-      margin-inline-end: auto;
-    }
-
-    .s-catalog-toolbar__count {
-      @apply order-2 px-0;
-    }
-
-    .s-catalog-toolbar__sort {
-      @apply order-3 px-0;
-    }
-
-    &.is-stuck {
-      @apply shadow-sm;
-    }
-
-    /* Up behind the title bar, and past the status bar inside the app. Hidden
-       once out of view, so it can't take focus. */
-    &.is-hidden {
-      transform: translateY(calc(-100% - 3rem - var(--app-safe-area-top, 0px)));
-      visibility: hidden;
-      transition:
-        transform 0.25s ease,
-        visibility 0s linear 0.25s;
-    }
-  }
+.s-infinite-scroll-btn {
+  @apply text-background;
 }

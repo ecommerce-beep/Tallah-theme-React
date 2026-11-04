@@ -1,0 +1,176 @@
+/*
+  TALLAH home blocks (`home.AR-*`). The Twig versions wrote their colors and
+  backgrounds into a per-block `<style>`; here each section carries them as CSS
+  variables, and an unset variable falls back to the theme's own look.
+*/
+
+/* AR-Hero-2 -------------------------------------------------------------- */
+.ar-hero2__banner {
+  background: var(--ar-hero-mobile-bg, none) center center / cover no-repeat;
+
+  @media (min-width: 768px) {
+    background: var(--ar-hero-desktop-bg, none) center center / cover no-repeat;
+  }
+
+  /* The Twig theme has no fixed bottom bar; this one (`.mobile-bottom-bar`, z-220) would sit on
+     the 100svh banner's bottom button. `--mobile-bottom-bar-clearance` (mobile-bottom-bar.scss)
+     is the bar's own height, and `0` wherever the bar is hidden. The button is lifted with a transform (below), not
+     with padding, so the centred text stays where the Twig puts it. */
+
+  .ar-hero2__button {
+    transform: translateY(calc(-1 * var(--mobile-bottom-bar-clearance, 0px)));
+  }
+
+  /* Mobile only: a dark layer behind text that kept its default light color. */
+  &--scrim {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), var(--ar-hero-mobile-bg, none);
+
+    @media (min-width: 768px) {
+      background-image: var(--ar-hero-desktop-bg, none);
+    }
+  }
+
+  .blocktitle {
+    color: var(--ar-hero-title-color, var(--color-background));
+  }
+
+  .subtext {
+    color: var(--ar-hero-subtext-color, var(--color-background));
+
+    /* thin (300) small text over an image is hard to read */
+    @media (max-width: 767px) {
+      font-weight: 400;
+    }
+  }
+}
+
+/* The outlined / filled button every `AR-*` banner shares; `$color` and `$bg` are the CSS
+   variables holding the merchant's text and fill colors (unset: the theme's own look). */
+@mixin ar-button($color, $bg) {
+  color: var(#{$color}, var(--color-background));
+  background-color: var(#{$bg}, var(--color-primary));
+  border: 1px solid var(#{$color}, color-mix(in srgb, var(--color-primary) 15%, white));
+
+  &:hover {
+    color: var(#{$bg}, var(--color-primary));
+    background-color: var(#{$color}, var(--color-background));
+    border-color: var(#{$bg}, var(--color-primary));
+  }
+
+  /* `transparent_button`: no fill until hover, and the border keeps the text color. */
+  &--transparent {
+    background-color: transparent;
+
+    &:hover {
+      border-color: var(#{$color}, var(--color-primary));
+    }
+  }
+}
+
+.ar-hero2__button {
+  @include ar-button(--ar-hero-btn-color, --ar-hero-btn-bg);
+}
+
+.ar-btn {
+  @include ar-button(--ar-btn-color, --ar-btn-bg);
+}
+
+/* AR-special-banner ------------------------------------------------------ */
+.ar-special__banner {
+  height: 30rem;
+  background: var(--ar-bg-mobile, none) center center / cover no-repeat;
+
+  @media (min-width: 768px) {
+    height: 43.75rem;
+    background: var(--ar-bg-desktop, none) center center / cover no-repeat;
+  }
+}
+
+/* Ar-Promo-banner: the image is a plain `<img>`, nothing to style beyond its box. */
+
+/* AR-Products-banner ----------------------------------------------------- */
+.Ar-products-banner {
+  /* Two slides per view with a 20px gap, as the Twig's Swiper (`slidesPerView: 2`). */
+  .ar-products__track {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 5px;
+
+    &.is-dragging {
+      scroll-snap-type: none;
+      cursor: grabbing;
+    }
+  }
+
+  .ar-products__slide {
+    flex: 0 0 calc((100% - 20px) / 2);
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+
+  /* The Twig's card image box. */
+  .s-product-card-entry {
+    height: auto;
+  }
+
+  /* The engine card gives its image `flex: 1 1 0` in a height-limited card, which stretches it. */
+  .s-product-card .s-product-card-image {
+    flex: none !important;
+    min-height: 261px;
+    max-height: 405px;
+    height: clamp(16.313rem, 13.144rem + 13.5211vw, 25.313rem) !important;
+  }
+
+  .ar-products__arrow {
+    @apply flex h-8 w-8 items-center justify-center rounded-full bg-white;
+    color: var(--color-primary);
+
+    i {
+      font-size: 0.875rem;
+    }
+
+    /* the phone arrows above the row: translucent, outlined */
+    &--top {
+      @apply border bg-white/50 shadow-none;
+    }
+  }
+
+  /* corner case: only one product — centered, no arrows */
+  &.single-product {
+    .ar-products__track {
+      justify-content: center;
+    }
+
+    .ar-products__slide {
+      flex-basis: 100%;
+      max-width: 300px;
+    }
+  }
+
+  /* From lg the Twig's slider sits inside two 28px paddings (`lg:px-7` and `.s-products-slider-slider`), and its
+     Swiper has a -10px margin with 5px padding: 646.5px of slides at 1521px, so 313.25px each. The wrapper here
+     carries both paddings (`lg:px-[56px]`); the track keeps the margin / padding. */
+  @media (min-width: 1024px) {
+    .ar-products__track {
+      margin-inline: -10px;
+      padding: 5px;
+    }
+  }
+}
+
+/* AR_our_products ----------------------------------------------------------- */
+.ar-our-products__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

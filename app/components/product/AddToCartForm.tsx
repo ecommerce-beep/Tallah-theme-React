@@ -313,6 +313,7 @@ function StickyProductBar({
   priceBump: number;
   hasPreorder: boolean;
 }) {
+  const { t } = useTranslation();
   const { store } = useTwilight();
   // The storefront API doesn't send `can_quick_buy` for a product, so gating on it
   // alone never shows the buy-now (+ Apple Pay) widget. Fall back to the store's
@@ -334,6 +335,7 @@ function StickyProductBar({
       {/* Live price on the start side, quantity stepper on the end side
           (replaces the standalone price section and the "Quantity" label). */}
       <div className="sticky-product-bar__quantity center-between mb-5">
+        <b className="tallah-price-label">{t('pages.products.price', 'Price')}</b>
         <StickyPriceDisplay product={product} priceBump={priceBump} />
         <StickyQuantityField product={product} />
       </div>

@@ -44,6 +44,9 @@ module.exports = {
         darker: '#0E0F0F',
         danger: '#AE0A0A',
         primary: 'var(--color-primary)',
+        // Set from the `bg_color` / `text_color` settings (see ThemeLayout), as master.twig did.
+        background: 'var(--color-background)',
+        font: 'var(--color-font)',
         'primary-dark': 'var(--color-primary-dark)',
       },
       spacing: {

@@ -1,0 +1,366 @@
+/*
+  TALLAH product page (`product/single.twig`, `AR_single.scss`, `partials/product/sticky_bar.twig`).
+  Markup: ProductPage.tsx, ProductDetails.tsx, ProductGallery.tsx, TallahPdpParts.tsx.
+*/
+
+.tallah-pdp {
+  /* title row: the share + wishlist icons sit at the end, from `lg` (phones get `.tallah-pdp__mobile-actions`) */
+  .product-details__title-actions {
+    display: none;
+
+    @media (min-width: 1024px) {
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  /* gallery: rounded images, the discount / promotion label over the corner */
+  .product-gallery .details-slider {
+    @apply rounded-none;
+  }
+
+  .promotion-title {
+    @apply absolute top-4 z-[2] bg-background px-2 py-1 text-sm font-medium;
+    color: var(--color-primary);
+    inset-inline-start: 0;
+  }
+}
+
+/* --- breadcrumb ---------------------------------------------------------------- */
+/* Desktop: inside the buy column, flush (not the full-bleed bar the listing pages use). */
+.tallah-pdp__crumbs {
+  .breadcrumbs {
+    width: auto;
+    max-width: none;
+    margin: 0 0 0.75rem;
+    background: transparent;
+    @apply py-0;
+
+    .s-breadcrumb-wrapper {
+      @apply m-0 max-w-none p-0;
+    }
+  }
+
+  /* Phones: above the gallery, as in Twig (the generic rule hides the trail below `md`). */
+  &--top .breadcrumbs {
+    @apply block px-4 py-2;
+
+    @media (max-width: 767px) {
+      display: block;
+    }
+  }
+}
+
+/* --- wishlist + share row (phones) ------------------------------------------ */
+.tallah-pdp__mobile-actions {
+  @apply mt-4 flex items-stretch gap-2;
+
+  salla-social-share {
+    @apply flex items-center justify-center border border-gray-200 px-3;
+  }
+}
+
+.tallah-pdp__wishlist {
+  @apply flex flex-1 items-center justify-center gap-2 border border-gray-200 bg-transparent px-4 py-3 text-sm font-medium text-primary;
+
+  &.is-added i {
+    @apply text-red-600;
+  }
+}
+
+/* --- description / reviews tabs ---------------------------------------------- */
+.tallah-tabs {
+  @apply my-6;
+
+  &__list {
+    @apply mb-4 flex justify-center gap-8 border-b border-gray-200;
+  }
+
+  &__tab {
+    @apply -mb-px border-b-2 border-transparent bg-transparent px-1 pb-3 text-xl font-medium text-gray-500 transition-colors lg:text-3xl;
+
+    &.is-active {
+      @apply border-primary text-font;
+    }
+  }
+
+  &__panel {
+    @apply py-4;
+  }
+}
+
+/* --- selling points ------------------------------------------------------------ */
+.tallah-selling-points {
+  @apply m-0 flex list-none flex-col items-stretch gap-6 p-0 py-6;
+
+  &__item {
+    @apply flex flex-row items-center gap-4;
+  }
+
+  &__icon {
+    @apply aspect-square h-8 w-8 shrink-0;
+  }
+
+  &__text {
+    @apply flex flex-1 flex-col items-start;
+  }
+
+  &__title {
+    @apply text-sm font-semibold leading-5;
+  }
+
+  &__desc {
+    @apply m-0 text-xs font-medium leading-4;
+  }
+
+  @media (min-width: 1024px) {
+    &--horizontal {
+      @apply flex-row items-start gap-4;
+
+      .tallah-selling-points__item {
+        @apply min-w-[150px] flex-1 flex-col gap-2 px-2 text-center;
+      }
+
+      .tallah-selling-points__text {
+        @apply items-center gap-1 text-center;
+      }
+    }
+  }
+}
+
+/* --- similar products --------------------------------------------------------- */
+.tallah-pdp__related {
+  @apply my-6 overflow-x-hidden px-4 lg:px-10;
+
+  .s-products-carousel__title {
+    font-size: clamp(1.375rem, 1.1216rem + 1.0811vw, 2rem);
+    @apply font-medium leading-7 text-font;
+  }
+}
+
+/* --- extra image strip --------------------------------------------------------- */
+.tallah-inspire {
+  @apply overflow-x-hidden px-4 py-6 md:py-14 lg:px-16;
+  background-color: #e9e9e9;
+
+  &__title {
+    @apply pb-4 font-medium leading-7 text-font;
+    font-size: clamp(1.375rem, 1.1216rem + 1.0811vw, 2rem);
+  }
+
+  &__track {
+    @apply flex snap-x snap-mandatory gap-2 overflow-x-auto pb-2 lg:gap-4;
+    scrollbar-width: thin;
+  }
+
+  &__item {
+    @apply h-[330px] shrink-0 snap-start overflow-hidden lg:h-[374px];
+    flex-basis: 66%;
+
+    @media (min-width: 551px) {
+      flex-basis: 50%;
+    }
+
+    @media (min-width: 786px) {
+      flex-basis: 33%;
+    }
+
+    @media (min-width: 1024px) {
+      flex-basis: 20%;
+    }
+  }
+}
+
+/* --- desktop sticky buy bar (sticky_bar.twig, `pro1`) ------------------------------ */
+.tallah-sticky-bar {
+  @apply fixed inset-x-0 bottom-0 z-50 hidden bg-background shadow-lg;
+  transform: translateY(100%);
+  visibility: hidden;
+  transition:
+    transform 0.3s ease,
+    visibility 0s linear 0.3s;
+
+  @media (min-width: 768px) {
+    display: block;
+  }
+
+  &.is-visible {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.3s ease;
+  }
+
+  &__inner {
+    @apply flex items-center justify-between gap-4 pb-3 pt-2 md:px-14;
+  }
+
+  &__info {
+    @apply flex min-w-0 flex-1 items-center gap-4;
+  }
+
+  &__thumb {
+    @apply h-14 w-14 shrink-0 rounded-lg border border-gray-200 object-cover;
+  }
+
+  &__name {
+    @apply truncate text-sm font-bold text-gray-900 md:text-base;
+  }
+
+  &__price {
+    @apply mt-1 flex items-center gap-2 text-lg;
+  }
+
+  &__btn {
+    @apply h-14 w-[323px] shrink-0 bg-primary px-4 text-base font-medium text-primary-reverse;
+
+    &:hover {
+      @apply opacity-90;
+    }
+  }
+}
+
+/* --- purchase block (single.twig `.sticky-product-bar`) -------------------------------- */
+/* "Price" label + live price on one row, then the quantity stepper beside a square add button;
+   the buy-now widget sits under the button. Phones keep the floating bar from `product.scss`. */
+.tallah-price-label {
+  display: none;
+}
+
+.sticky-product-bar__btn {
+  .s-button-btn,
+  .s-button-element {
+    @apply rounded-none;
+  }
+}
+
+.s-add-product-button-main .s-add-product-button-mini-checkout {
+  --salla-fast-checkout-button-border-radius: 0;
+}
+
+@media (min-width: 641px) {
+  .tallah-pdp .sticky-product-bar {
+    @apply grid items-center gap-x-3 gap-y-3 p-0;
+    grid-template-columns: 1fr auto;
+
+    .sticky-product-bar__quantity {
+      display: contents;
+    }
+
+    .tallah-price-label {
+      @apply block text-font;
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .price-wrapper,
+    .out-of-stock {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+
+    salla-quantity-input {
+      grid-column: 2;
+      grid-row: 2;
+      align-self: start;
+    }
+
+    > div:has(> .sticky-product-bar__btn) {
+      grid-column: 1;
+      grid-row: 2;
+      margin: 0;
+    }
+
+    .sticky-product-bar__btn {
+      @apply m-0;
+    }
+  }
+}
+
+@media (min-width: 641px) {
+  /* buy-now under the add button, full width (single.twig renders it as its own row) */
+  .tallah-pdp .sticky-product-bar .s-add-product-button-main {
+    @apply flex-col items-stretch gap-3;
+  }
+}
+
+/* --- product options: square controls, no card background (AR_single.scss) ----------------- */
+.tallah-pdp .product-form {
+  .s-product-options-wrapper,
+  .s-product-options-option-container,
+  .s-product-options-option {
+    background: transparent;
+  }
+
+  .form-input,
+  .s-form-control,
+  .s-product-options-option-container input[type='text'],
+  .s-product-options-option-container input[type='number'],
+  .s-product-options-option-container textarea,
+  .s-product-options-option-container select,
+  .s-product-options-option-container .s-datetime-picker-input {
+    @apply rounded-none;
+  }
+
+  .s-product-options-option-container .s-product-options-colors-item,
+  .s-product-options-thumbnails-item,
+  .s-product-options-multiple-options-item {
+    border-radius: 0;
+  }
+}
+
+/* --- gallery: a vertical thumbnail column beside the image from `lg` (thumbs-config in ProductGallery) --- */
+@media (min-width: 1024px) {
+  .tallah-pdp .product-gallery salla-slider.details-slider {
+    display: flex;
+    flex-direction: row-reverse; /* thumbs first on the inline-start side, as in single.twig */
+    align-items: flex-start;
+    gap: 0.75rem;
+
+    .s-slider-container {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    .s-slider-thumbs {
+      flex: 0 0 5rem;
+      width: 5rem;
+      /* the vertical Swiper needs a bounded height; keep it to about the image */
+      max-height: min(46rem, 75vh);
+      overflow: hidden;
+    }
+  }
+}
+
+/* phones: thumbs show under the image (single.twig) instead of the dots-only pill from `slider.scss` */
+@media (max-width: 767px) {
+  .tallah-pdp .product-gallery salla-slider.details-slider .s-slider-thumbs {
+    display: block;
+    margin-top: 0.5rem;
+  }
+}
+
+/* --- selected products carousel in the buy column (single_side_products) -------------------- */
+.tallah-pdp__side {
+  @apply mt-4 border-t pt-4;
+  border-color: color-mix(in srgb, var(--color-primary) 15%, white);
+
+  &-title {
+    @apply pb-4 text-base font-semibold leading-6;
+  }
+
+  .s-products-carousel__slide {
+    flex: 0 0 62%;
+  }
+}
+
+/* --- gallery grid mode (grid_or_slider_products_page) ------------------------------------- */
+.tallah-gallery-grid {
+  .swiper-slide {
+    @apply block;
+  }
+
+  .promotion-title {
+    @apply z-[2];
+  }
+}

@@ -1,6 +1,11 @@
 import React from 'react';
 import { afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
+
+// `waitFor` / `findBy*` give up after 1s by default. A first render that lazy-loads a component
+// (AddToCartForm's quantity input) needs longer while every worker is busy; passing tests are
+// not slower, and a missing element still fails, just after 5s.
+configure({ asyncUtilTimeout: 5000 });
 
 afterEach(() => {
   cleanup();

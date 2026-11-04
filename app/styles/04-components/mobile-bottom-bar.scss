@@ -6,6 +6,20 @@
    Markup: app/components/layout/MobileBottomBar.tsx (mounted in ThemeLayout).
    ========================================================================= */
 
+/* Space the bar takes at the bottom of the viewport, for content that must not sit under it.
+   Declared next to the bar's own `md:hidden` and as its exact complement, so the two change
+   together: it is `0` wherever the bar is hidden. (`not all and (min-width: 768px)` rather
+   than `max-width: 767px`, which leaves a gap at fractional widths like 767.2px.) */
+:root {
+  --mobile-bottom-bar-clearance: 0px;
+}
+
+@media not all and (min-width: 768px) {
+  :root {
+    --mobile-bottom-bar-clearance: calc(76px + var(--safe-bottom));
+  }
+}
+
 .mobile-bottom-bar {
   --mbb-badge-bg: #b3261e;
   --mbb-badge-text: #ffffff;

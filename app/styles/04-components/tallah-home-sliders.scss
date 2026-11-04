@@ -1,0 +1,172 @@
+/*
+  TALLAH home blocks with a slider: `home.AR-Hero-section` and `home.AR-Custom-testimonials`.
+  Same variable convention as tallah-home.scss: an unset color falls back to the theme's look.
+*/
+
+/* AR-Hero-section -------------------------------------------------------- */
+/* The hero is the first thing on the page, under the header: no top margin from the block wrapper (the Twig has none). */
+main .s-block.s-block--AR-Hero-section {
+  margin-top: 0;
+}
+
+.AR-slider-hero-section {
+  /*
+    The engine's carousel container pads its start side by 3rem and pulls itself out by -10px, so the slides were
+    342px wide in a 375px phone and the next banner showed beside them. The Twig fixed it for RTL only
+    (`.carousel-slider .swiper:where([dir=rtl]) { padding-left: 0 }`); a full-width hero needs neither side.
+  */
+  .carousel-slider .swiper {
+    padding-inline: 0;
+    margin-inline: 0;
+  }
+
+  /* The fixed bottom bar must not sit on a button placed at the bottom (see tallah-home.scss). */
+  /* Lifted with a transform, not a margin, so the centred text above it stays where the Twig puts it. */
+  .ar-hero-slider__cta--bottom {
+    transform: translateY(calc(-1 * var(--mobile-bottom-bar-clearance, 0px)));
+  }
+
+  .ar-hero-slider__banner {
+    /* 100svh on phones, 90vh from md. Set here, not only as utilities: Swiper's `.swiper-slide { height: 100% }` outranks them. */
+    height: 100svh;
+    /*
+      The slide is a flex column (text block on top, a `button_bottom` CTA pushed down with `mt-auto self-center`).
+      The vendored Swiper `.swiper-slide { display: block }` lands after Tailwind's `.flex` in app.css and won, so the
+      bottom CTA stretched to the slide's full width. Same specificity as the height above, so it also outranks Swiper.
+    */
+    display: flex;
+    flex-direction: column;
+    background: var(--ar-bg-mobile, none) center center / cover no-repeat;
+    /* `py-16` both ways, as in the Twig, so the text block stays centred. */
+    padding-block: 4rem;
+
+    @media (min-width: 768px) {
+      height: 90vh;
+      background: var(--ar-bg-desktop, none) center center / cover no-repeat;
+    }
+
+    /* Mobile only: a dark layer behind text that kept its default light color. */
+    &--scrim {
+      background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), var(--ar-bg-mobile, none);
+
+      @media (min-width: 768px) {
+        background-image: var(--ar-bg-desktop, none);
+      }
+    }
+
+    /* thin (300) small text over an image is hard to read */
+    .subtext {
+      @media (max-width: 767px) {
+        font-weight: 400;
+      }
+    }
+  }
+
+  /* Only the slide in view takes clicks, so a hidden banner's link never catches one. */
+  &.ar-hero-slider--many {
+    .swiper-slide {
+      pointer-events: none;
+    }
+
+    .swiper-slide.swiper-slide-active {
+      pointer-events: all;
+    }
+  }
+
+  /* Thin bullets that fill the bar, as the Twig's `.swiper-pagination-bullet` (2px, flex 1). */
+  .ar-hero-slider__bullets {
+    position: absolute !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0;
+    bottom: calc(2rem + var(--mobile-bottom-bar-clearance, 0px)) !important;
+    left: 50% !important;
+    width: 25% !important;
+    transform: translateX(-50%);
+    z-index: 6;
+    pointer-events: none;
+
+    .swiper-pagination-bullet {
+      /* Swiper's own 4px side margin stays: with the 0.5rem gap it leaves 178px bullets in the 25% bar. */
+      margin: 0 4px;
+      border-radius: 0;
+      opacity: 0.6;
+      flex: 1 1 0%;
+      height: 2px;
+      width: auto;
+      background: var(--color-background);
+      color: var(--color-background);
+      transition: all 0.5s ease-in-out;
+      pointer-events: auto;
+
+      &.swiper-pagination-bullet-active {
+        opacity: 1;
+      }
+    }
+  }
+
+  /* Pause / play for the automatic slide change (WCAG 2.2.2). */
+  .hero-autoplay-toggle {
+    position: absolute;
+    z-index: 6;
+    bottom: calc(1.5rem + var(--mobile-bottom-bar-clearance, 0px));
+    inset-inline-end: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 0;
+    border-radius: 9999px;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    cursor: pointer;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+}
+
+/* AR-Custom-testimonials ------------------------------------------------- */
+.AR-testimonials {
+  /* 1.5 / 2 / 3 / 4 cards per view from 0 / 400 / 640 / 860px, 4px apart (the Twig's Swiper config). */
+  --ar-testimonials-per-view: 1.5;
+
+  @media (min-width: 400px) {
+    --ar-testimonials-per-view: 2;
+  }
+
+  @media (min-width: 640px) {
+    --ar-testimonials-per-view: 3;
+  }
+
+  @media (min-width: 860px) {
+    --ar-testimonials-per-view: 4;
+  }
+
+  .ar-testimonials__track {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+
+    &.is-dragging {
+      scroll-snap-type: none;
+      cursor: grabbing;
+    }
+  }
+
+  .ar-testimonials__slide {
+    flex: 0 0 calc((100% - 4px * (var(--ar-testimonials-per-view) - 1)) / var(--ar-testimonials-per-view));
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+
+  .s-rating-stars-selected {
+    fill: #ceb18f;
+  }
+}

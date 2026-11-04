@@ -1,0 +1,683 @@
+/*
+ * TALLAH header (`components/layout/tallah/*`). Migrated from the Twig theme's
+ * `header.twig` and its scripts `custom-menu.js`, `custom-menu-mobile.js`,
+ * `custom-search-panel.js`, `custom-top-nav.js` (and the header part of `app.js`).
+ * Sizes, spacing and colors are the Twig markup's own Tailwind classes, written
+ * out; the comments name the Twig class where it is not obvious.
+ *
+ * Colors are never fixed here. The component sets, on the root, from Theme
+ * Editor settings:
+ *   --th-bg / --th-text            header-background-color / header-text-color
+ *                                  (`--hover-bg` / `--hover-text` in Twig)
+ *   --th-rest-bg / --th-rest-text  the header's resting look: a dark gradient + white
+ *                                  text over the home hero (`header-hover` on), else
+ *                                  the two above
+ *   --th-bar-bottom                where the bar ends, measured when a panel opens
+ */
+
+.tallah-header {
+  @apply relative z-50;
+
+  &--home {
+    @apply absolute inset-x-0 top-0 w-full;
+  }
+}
+
+/* `#mainnav`: the announcement strip, the contacts bar and the main bar. */
+.tallah-header__nav {
+  @apply relative;
+  height: fit-content;
+  min-height: fit-content;
+
+  /* `before:absolute before:inset-0 before:-z-1`: the resting background, one layer behind all three. */
+  &::before {
+    content: '';
+    @apply absolute inset-0;
+    z-index: -1;
+    background: var(--th-rest-bg);
+  }
+}
+
+/* While a panel is open Twig paints the whole header the header color (`header.style.backgroundColor`).
+   Done on the background layer so the dimmed backdrop (one level lower) does not tint it. */
+.tallah-header.is-open-panel .tallah-header__nav::before {
+  background: var(--th-bg);
+}
+
+/* --- announcement strip (`.top-lace`) ---------------------------------- */
+.tallah-top-lace {
+  @apply flex h-[38px] w-full items-center justify-center gap-1 px-[21px] py-[7px] lg:justify-between lg:self-stretch lg:px-[30px] lg:py-[7px];
+}
+
+.tallah-top-lace__center {
+  @apply flex items-center justify-center gap-1;
+  flex: 1 0 0;
+}
+
+.tallah-top-lace__row {
+  @apply flex flex-row items-center gap-1;
+}
+
+.tallah-top-lace__countdown {
+  @apply flex h-[22px] items-center justify-center gap-1 rounded-lg px-3 py-[10px] lg:gap-2 lg:px-4 lg:py-1;
+}
+
+.tallah-top-lace__text {
+  @apply hidden text-center text-[10px] font-medium not-italic leading-[20px] tracking-normal lg:block lg:text-xs lg:leading-5;
+}
+
+.tallah-top-lace__special {
+  @apply text-center text-[11px] font-normal not-italic leading-[16px] tracking-normal lg:text-xs lg:leading-5;
+}
+
+.tallah-top-lace__icon-box {
+  @apply flex h-[14px] w-[14px] items-center justify-center lg:h-4 lg:w-4;
+}
+
+/* --- contacts bar (`.top-navbar`, `lg+`) -------------------------------- */
+.tallah-topnav {
+  @apply hidden min-h-[48px] bg-transparent px-16 py-2 lg:flex;
+  color: var(--color-background);
+}
+
+.tallah-topnav__row {
+  @apply flex w-full justify-between;
+}
+
+.tallah-topnav__menu {
+  @apply flex flex-1 justify-start;
+  color: var(--color-background);
+}
+
+.tallah-topnav__contacts {
+  @apply flex flex-1 justify-center gap-2;
+  color: var(--color-background);
+}
+
+.tallah-topnav__localize {
+  @apply flex flex-1 items-center justify-end;
+
+  button {
+    @apply flex basis-0 items-center justify-start gap-1 !p-0;
+  }
+
+  i {
+    color: var(--color-background);
+  }
+}
+
+.tallah-topnav__lang,
+.tallah-topnav__currency {
+  @apply mx-1 !text-lg sm:mx-1.5;
+  color: var(--color-background);
+}
+
+.tallah-topnav__currency {
+  font-family: inherit;
+}
+
+.tallah-topnav__dash {
+  @apply mx-1 !text-base sm:mx-1.5;
+  color: var(--color-background);
+}
+
+/* Lit header: `header:hover .top-navbar` takes the header color and its text. (Only the pointer does
+   this in Twig; a panel opened by keyboard leaves the bar's text as it is.) */
+.tallah-header--hover:hover .tallah-topnav {
+  background: var(--th-bg);
+}
+
+.tallah-header--hover:hover .tallah-topnav :is(p, span, a) {
+  color: var(--th-text) !important;
+}
+
+/* --- main bar (`.inner`, `.site-header`, `.site-header-mobile`) --------- */
+.tallah-header__inner {
+  @apply sticky top-0 z-50 w-full;
+}
+
+/* `header_is_sticky` off: the bar scrolls away with the page. */
+.tallah-header--static .tallah-header__inner {
+  position: static;
+}
+
+/* `.fixed-pinned .inner`: fixed to the viewport, frosted, and the two bars above it are dropped. */
+.tallah-header.is-pinned .tallah-header__inner {
+  @apply fixed inset-x-0 top-0;
+  z-index: 29;
+  background: rgba(255, 255, 255, 0.144);
+  backdrop-filter: blur(20px);
+}
+
+.tallah-header--home.is-pinned .tallah-header__inner {
+  background: rgba(0, 0, 0, 0.144);
+}
+
+.tallah-header.is-pinned .tallah-top-lace,
+.tallah-header.is-pinned .tallah-topnav {
+  display: none;
+}
+
+/* `header:hover .inner` / `.fixed-pinned.fixed-header .inner` (header-hover on). */
+.tallah-header--hover:hover .tallah-header__inner,
+.tallah-header--hover.is-pinned .tallah-header__inner {
+  background: var(--th-bg);
+  backdrop-filter: blur(20px);
+}
+
+.tallah-header__bar {
+  @apply flex h-[56px] flex-row-reverse items-center justify-between px-4 lg:h-[60px] lg:px-16;
+  color: var(--th-rest-text);
+}
+
+.tallah-header--hover:hover .tallah-header__bar,
+.tallah-header.is-open-panel .tallah-header__bar,
+.tallah-header--hover.is-pinned .tallah-header__bar {
+  color: var(--th-text);
+}
+
+.tallah-header__icons {
+  @apply flex items-center gap-4 lg:flex-1 lg:justify-end lg:gap-6;
+}
+
+.tallah-header__controls {
+  @apply justify-between lg:hidden;
+}
+
+.tallah-header__logo-cell {
+  /* `w-[66px] h-[36px] ... py-5 px-3`: on mobile the box is fixed and the logo overflows it, centered. */
+  @apply flex h-[36px] w-[66px] shrink-0 flex-col items-center justify-center gap-3 px-3 py-5 lg:h-auto lg:w-auto lg:flex-1;
+}
+
+.tallah-header__menu {
+  @apply hidden h-full min-w-0 lg:flex lg:flex-1 lg:items-center lg:justify-start;
+}
+
+.tallah-header__action {
+  @apply relative inline-flex min-h-0 min-w-0 items-center justify-center bg-transparent p-0;
+  color: inherit;
+}
+
+/* The cart link of header.twig: `px-2` around the icon. */
+.tallah-header__cart-summary {
+  @apply px-2;
+}
+
+/* After the base rule, so they win over its `display`. */
+.tallah-header__action--desktop {
+  @apply hidden lg:inline-flex;
+}
+
+.tallah-header__action--mobile {
+  @apply lg:hidden;
+}
+
+/* --- logo (`.navbar-brand`) -------------------------------------------- */
+.tallah-header__brand {
+  @apply my-2 flex items-center lg:my-0;
+}
+
+.tallah-header__logo {
+  @apply h-auto max-h-12 w-auto max-w-[100px] object-contain xs:max-w-[170px];
+}
+
+.tallah-header.is-pinned .tallah-header__logo {
+  max-height: 40px;
+}
+
+.tallah-header__logos {
+  @apply relative flex items-center;
+}
+
+.tallah-header__logo--primary {
+  @apply transition-opacity duration-300;
+}
+
+.tallah-header__logo--secondary {
+  @apply absolute inset-0 m-auto opacity-0 transition-opacity duration-300;
+}
+
+/* Desktop only: off the home page the secondary logo is the one shown; on it, only while the header is lit. */
+@media (min-width: 1024px) {
+  .tallah-header--two-logos.tallah-header--page .tallah-header__logo--primary {
+    opacity: 0;
+  }
+
+  .tallah-header--two-logos.tallah-header--page .tallah-header__logo--secondary,
+  .tallah-header--two-logos.tallah-header--hover:hover .tallah-header__logo--secondary,
+  .tallah-header--two-logos.tallah-header--hover.is-pinned .tallah-header__logo--secondary,
+  .tallah-header--two-logos.is-open-panel .tallah-header__logo--secondary,
+  .tallah-header--two-logos .tallah-header__logos:hover .tallah-header__logo--secondary {
+    opacity: 1;
+  }
+
+  .tallah-header--two-logos.tallah-header--hover:hover .tallah-header__logo--primary,
+  .tallah-header--two-logos.tallah-header--hover.is-pinned .tallah-header__logo--primary,
+  .tallah-header--two-logos.is-open-panel .tallah-header__logo--primary,
+  .tallah-header--two-logos .tallah-header__logos:hover .tallah-header__logo--primary {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1023px) {
+  .tallah-header__logo--secondary {
+    display: none;
+  }
+}
+
+/* --- desktop menu (`#custom-mega-menu`) --------------------------------- */
+.tallah-menu {
+  @apply h-full w-full min-w-0 max-w-full overflow-hidden;
+}
+
+/* Holds the "More" tab off-screen so its width can be read before it exists. */
+.tallah-menu__probe {
+  @apply pointer-events-none invisible absolute h-0 overflow-hidden whitespace-nowrap;
+}
+
+.tallah-menu__tabs {
+  @apply flex h-full flex-nowrap items-center gap-6;
+}
+
+.tallah-menu__tab {
+  @apply relative flex h-full cursor-pointer items-center;
+}
+
+.tallah-menu__link {
+  @apply block whitespace-nowrap py-1;
+}
+
+.tallah-menu__underline {
+  @apply absolute bottom-0 h-[2px] w-0 bg-zinc-800 transition-all duration-300;
+  inset-inline-start: 0;
+}
+
+.tallah-menu__tab.is-open .tallah-menu__underline {
+  @apply w-full;
+}
+
+/* Compact dropdown (`#simple-menu`, `advanced-menu` off): 242 x 375, fixed under the bar. */
+.tallah-menu__dropdown {
+  @apply absolute z-20 flex h-[375px] w-[242px] shrink-0 flex-col items-start gap-4 bg-white p-6 pb-10 text-sm text-black;
+  top: 100%;
+  transform-origin: top;
+  animation: tallah-open 0.2s ease-out;
+
+  /* `#simple-menu-list`: its own `p-4` and `space-y-2`. */
+  ul {
+    @apply flex flex-col space-y-2 p-4 text-sm text-black;
+  }
+
+  li {
+    @apply flex items-center gap-3 self-stretch text-sm text-zinc-700;
+
+    &:hover {
+      @apply underline;
+    }
+  }
+
+  img {
+    @apply aspect-square h-[28px] w-[28px];
+  }
+
+  a {
+    @apply flex flex-1 items-center text-[15.065px] font-semibold leading-[22.597px] tracking-[0.377px] hover:underline;
+  }
+}
+
+/* Full-width panel (`#mega-content`, `advanced-menu` on), 70vh, hung off the bar. */
+.tallah-mega {
+  /* `fixed left-0 w-screen` in Twig: from the left edge, the width of the viewport. */
+  @apply absolute z-20 flex h-[70vh] items-start gap-[49px] border-t border-gray-500;
+  top: 100%;
+  left: 0;
+  width: 100vw;
+  background: var(--th-bg);
+  transform-origin: top;
+  animation: tallah-open 0.3s ease-out;
+}
+
+.tallah-mega__children {
+  @apply flex h-full w-[328px] shrink-0 flex-col items-start gap-[20px] space-y-2 overflow-y-auto bg-zinc-100;
+  padding: 48px 68px 48px 64px;
+
+  a {
+    @apply block w-full text-base font-semibold leading-6 tracking-wide text-zinc-500 hover:text-zinc-900 hover:underline;
+  }
+}
+
+.tallah-mega__content {
+  @apply flex w-[994px] min-w-0 max-w-full flex-col gap-4 py-12;
+}
+
+.tallah-mega__title {
+  @apply w-full self-stretch border-b border-gray-500 text-sm font-medium uppercase leading-4 tracking-wide text-zinc-800;
+}
+
+.tallah-mega__body {
+  @apply flex w-full items-start justify-between;
+}
+
+.tallah-mega__columns {
+  @apply flex items-start gap-4;
+  color: var(--th-rest-text);
+
+  ul {
+    @apply space-y-1 text-sm text-zinc-500;
+    padding-right: 1.5rem;
+  }
+
+  a {
+    @apply cursor-pointer hover:text-black hover:underline;
+  }
+}
+
+.tallah-mega__images {
+  @apply flex gap-2;
+
+  img {
+    @apply flex h-[281px] items-start;
+  }
+}
+
+@keyframes tallah-open {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* When the bar is pinned the Twig panels sit at 54px, 6px under its bottom edge. */
+.tallah-header.is-pinned .tallah-mega,
+.tallah-header.is-pinned .tallah-menu__dropdown,
+.tallah-header.is-pinned .tallah-search {
+  top: calc(100% - 6px);
+}
+
+/* --- search panel (`#search-panel-wrapper`) ----------------------------- */
+.tallah-search {
+  @apply pointer-events-none absolute overflow-hidden;
+  top: 100%;
+  inset-inline: 0;
+  height: calc(100dvh - var(--th-bar-bottom, 56px));
+  visibility: hidden;
+  transition: visibility 0s linear 0.3s;
+
+  @media (min-width: 1024px) {
+    height: 70vh;
+  }
+
+  &.is-open {
+    @apply pointer-events-auto;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+}
+
+.tallah-search__panel {
+  @apply relative z-30 h-full w-full -translate-y-full overflow-y-auto bg-white;
+  color: var(--main-text-color); /* the body's text color: the Twig panel sits outside the header and inherits it */
+  /* `transform` only: a `transition: all` here would also transition the inherited `visibility`,
+     keeping the field unfocusable (hidden) until the first animation frame has run. */
+  transition: transform 0.3s ease;
+
+  .is-open > & {
+    @apply translate-y-0;
+  }
+}
+
+.tallah-search__inner {
+  @apply mx-auto flex w-full max-w-full flex-col items-start gap-6 px-4 py-4 lg:w-[777px] lg:gap-8 lg:px-0 lg:py-6;
+}
+
+.tallah-search__field {
+  @apply flex h-[40px] items-center self-stretch;
+}
+
+.tallah-search__icon {
+  @apply h-5 w-5 shrink-0;
+}
+
+.tallah-search__input {
+  @apply w-full border-0 border-b border-gray-300 bg-transparent focus:border-b focus:border-gray-500 focus:outline-none focus:ring-0;
+}
+
+.tallah-search__results {
+  @apply absolute inset-x-0 z-50 rounded-lg border border-gray-200 bg-white;
+
+  &[hidden] {
+    @apply hidden;
+  }
+
+  ul {
+    @apply max-h-64 divide-y divide-gray-100 overflow-y-auto;
+  }
+
+  li {
+    @apply hover:bg-gray-100;
+
+    &.is-active {
+      @apply bg-gray-100;
+    }
+  }
+
+  a {
+    @apply flex items-center gap-2 px-4 py-2;
+  }
+
+  img,
+  .tallah-search__noimg {
+    @apply h-10 w-10 shrink-0 object-cover;
+  }
+}
+
+.tallah-search__name {
+  @apply block text-sm font-medium;
+}
+
+.tallah-search__price {
+  @apply block text-xs text-gray-500;
+}
+
+.tallah-search__empty {
+  @apply px-4 py-2 text-gray-500;
+}
+
+/* The trending keywords and the popular categories share one column (`gap-8 lg:gap-12`). */
+.tallah-search__extras {
+  @apply flex flex-col items-start gap-8 self-stretch lg:gap-12;
+}
+
+.tallah-search__trending {
+  @apply flex w-full flex-col items-start gap-4 sm:flex-row sm:items-center lg:gap-[15px];
+
+  h4 {
+    @apply text-sm font-medium leading-6 tracking-wide;
+  }
+
+  > div {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-2 lg:gap-x-8;
+  }
+
+  button {
+    @apply inline-flex items-center gap-1;
+
+    &::before {
+      content: '';
+      @apply inline-block h-4 w-4 bg-contain bg-no-repeat;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%239F9FA9' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 5.33V8l2 2M14 8A6 6 0 1 1 2 8a6 6 0 0 1 12 0Z'/%3E%3C/svg%3E");
+    }
+  }
+}
+
+/* The Twig `<salla-slider>`: 2 slides, 2.5 from 400px, 3 from 640px, 4 from 860px, 4px apart. */
+.tallah-search__popular {
+  @apply flex flex-col items-start gap-4 self-stretch lg:gap-6;
+
+  h4 {
+    @apply text-lg font-semibold leading-7 tracking-wide lg:text-xl lg:leading-8;
+  }
+
+  ul {
+    @apply flex w-[95vw] snap-x gap-1 overflow-x-auto lg:w-[777px];
+    scrollbar-width: none;
+  }
+
+  li {
+    @apply aspect-[4/3] shrink-0 snap-start overflow-hidden bg-gray-100;
+    flex-basis: calc((100% - 4px) / 2);
+
+    @media (min-width: 400px) {
+      flex-basis: calc((100% - 6px) / 2.5);
+    }
+
+    @media (min-width: 640px) {
+      flex-basis: calc((100% - 8px) / 3);
+    }
+
+    @media (min-width: 860px) {
+      flex-basis: calc((100% - 12px) / 4);
+    }
+  }
+
+  a,
+  img {
+    @apply flex h-full w-full items-center justify-center overflow-hidden object-cover;
+  }
+}
+
+/* --- backdrop (`#search-overlay-container`, `#mega-overlay-background`) --- */
+/* Negative z-index inside the header's own stacking context: above the page
+   behind it, below the bar and its panels. */
+.tallah-header__backdrop {
+  @apply pointer-events-none fixed inset-0 border-0 bg-black/50 p-0 opacity-0;
+  z-index: -2; /* under the nav's background layer (-1), over the page */
+
+  &[data-visible='true'] {
+    @apply opacity-100;
+  }
+
+  &.is-clickable {
+    @apply pointer-events-auto;
+  }
+}
+
+/* --- mobile menu (`#mobile-menu-overlay`) ------------------------------- */
+/* The whole dimmed layer comes in from the inline-start edge. Twig only transitions its
+   opacity, so the move itself is immediate. */
+.tallah-mobile-menu {
+  @apply invisible fixed bottom-0 z-30 bg-black/50 lg:hidden;
+  inset-inline: 0;
+  top: var(--th-bar-bottom, 56px);
+  transform: translateX(100%);
+
+  [dir='ltr'] & {
+    transform: translateX(-100%);
+  }
+
+  &.is-open {
+    @apply visible;
+    transform: none;
+  }
+}
+
+.tallah-mobile-menu__backdrop {
+  @apply absolute inset-0 border-0 bg-transparent p-0;
+}
+
+.tallah-mobile-menu__panel {
+  @apply absolute top-0 z-30 flex max-h-[calc(100vh-56px)] flex-col overflow-hidden bg-white text-zinc-800;
+  inset-inline: 0;
+}
+
+.tallah-mobile-menu__tabs {
+  @apply flex w-full justify-around gap-4 overflow-x-auto border-y px-4 py-3 text-sm font-semibold;
+  scrollbar-width: none;
+
+  button {
+    @apply relative flex items-center justify-center gap-2 whitespace-nowrap border-b-2 border-transparent px-2 py-1 text-gray-500;
+
+    &.is-active {
+      @apply border-black text-black;
+    }
+  }
+}
+
+.tallah-mobile-menu__content {
+  @apply flex flex-1 flex-col overflow-y-auto p-5;
+  scrollbar-width: none;
+}
+
+.tallah-mobile-menu__row {
+  @apply mb-4 flex items-center justify-between gap-2 py-3 text-sm font-medium leading-6 tracking-[0.4px] text-[#27272A];
+  padding-left: 0.5rem;
+
+  a {
+    @apply flex-1;
+  }
+
+  button {
+    @apply inline-flex cursor-pointer items-center justify-center;
+  }
+}
+
+.tallah-mobile-menu__sub {
+  @apply absolute inset-0 overflow-y-auto transition-transform duration-500 ease-in-out;
+  background: var(--th-bg);
+  transform: translateX(-100%);
+  visibility: hidden;
+  scrollbar-width: none;
+
+  [dir='ltr'] & {
+    transform: translateX(100%);
+  }
+
+  &.is-open {
+    transform: none;
+    visibility: visible;
+  }
+
+  ul {
+    @apply flex flex-col items-start self-stretch px-5 py-2;
+  }
+
+  li {
+    @apply flex flex-col items-start gap-[10px] self-stretch py-3 text-sm font-medium leading-6 tracking-[0.4px] text-[#27272A];
+    padding-left: 0.5rem;
+  }
+}
+
+.tallah-mobile-menu__back {
+  @apply flex w-full cursor-pointer items-center gap-2 self-stretch border-y px-4 py-3 text-sm font-semibold text-gray-600;
+
+  span {
+    @apply text-sm font-medium leading-6 tracking-[0.4px] text-[#27272A];
+  }
+}
+
+.tallah-mobile-menu__images {
+  @apply grid grid-cols-3 gap-4 p-5;
+
+  img {
+    @apply h-full w-full object-cover;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tallah-search__panel,
+  .tallah-mobile-menu__sub,
+  .tallah-header__logo--primary,
+  .tallah-header__logo--secondary,
+  .tallah-menu__underline {
+    transition: none;
+  }
+
+  .tallah-mega,
+  .tallah-menu__dropdown {
+    animation: none;
+  }
+}

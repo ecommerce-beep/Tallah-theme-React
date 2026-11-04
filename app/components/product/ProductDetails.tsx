@@ -10,9 +10,6 @@ import type { Product } from '@salla.sa/twilight-theme-engine/types';
 import { SallaRatingStars } from '@salla.sa/twilight-components-react/rating-stars';
 import { SallaSocialShare } from '@salla.sa/twilight-components-react/social-share';
 import { SallaInstallment } from '@salla.sa/twilight-components-react/installment';
-import { useHydrated } from '../../hooks/useHydrated';
-import { useMobileViewport } from '../../hooks/useMobileViewport';
-import { ProductMetadata } from './ProductMetadata';
 import { WishlistHeartButton } from './WishlistHeartButton';
 
 interface ProductDetailsProps {
@@ -39,8 +36,6 @@ export function ProductDetails({
   showTags = true,
 }: ProductDetailsProps) {
   const { t } = useTranslation();
-  const hydrated = useHydrated();
-  const isMobile = useMobileViewport();
 
   // Context for all product hooks - contains product data
   const productHookContext = { product };
@@ -63,15 +58,8 @@ export function ProductDetails({
         </div>
       )}
 
-      <div className="mb-2.5 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl md:text-2xl leading-10 font-bold text-gray-800">{product.name}</h1>
-          {product.subtitle && (
-            <h2 className="product-entry__sub-title text-sm text-gray-500 leading-6 font-normal">
-              {product.subtitle}
-            </h2>
-          )}
-        </div>
+      <div className="mb-2 flex w-full items-center justify-between gap-4">
+        <h1 className="text-xl font-bold leading-10 text-font lg:text-[24px]">{product.name}</h1>
 
         {/* share + wishlist, pulled up beside the title on the end side.
             On mobile these move to the gallery overlay bar (`ProductGallery`),
@@ -83,27 +71,32 @@ export function ProductDetails({
         </div>
       </div>
 
-      {product.rating && (
-        <div className="product-details__rating">
-          <SallaRatingStars value={product.rating.stars} reviews={product.rating.count} />
+      {(product.rating || product.is_taxable) && (
+        <div className="mb-2 flex items-center justify-between">
+          {product.rating ? (
+            <SallaRatingStars
+              size="small"
+              value={product.rating.stars}
+              reviews={product.rating.count}
+            />
+          ) : (
+            <span />
+          )}
+          {product.is_taxable && (
+            <small className="color-grey font-bold underline">
+              {t('pages.products.tax_included')}
+            </small>
+          )}
         </div>
       )}
 
-      {product.is_taxable && (
-        <small className="color-grey">{t('pages.products.tax_included')}</small>
+      {product.subtitle && (
+        <h2 className="product-entry__sub-title mb-2 text-[14px] font-normal leading-6 text-font opacity-[0.957] lg:mb-4 lg:text-xl">
+          {product.subtitle}
+        </h2>
       )}
 
       <ProductPrice product={product} />
-
-      <ProductDescription product={product} />
-
-      {/* Metadata / specs — mobile only. On `md`+ it renders under the gallery
-          slider instead (`ProductGallery`) — same hydration-gated mounting
-          there, so together the two never run two `<SallaMetadata>` instances
-          at once past first paint; see the comment on that copy. */}
-      {product.has_metadata && (!hydrated || isMobile) && (
-        <ProductMetadata className="mb-3 md:hidden" />
-      )}
 
       {!!product.tags?.length && showTags && (
         <div className="mb-3">
@@ -204,22 +197,22 @@ function ProductPrice({ product }: { product: Product }) {
   const priceCurrency = getActiveCurrency(product.currency);
 
   return (
-    <div className="flex whitespace-nowrap gap-4 items-center mb-2.5">
+    <div className="product-details__price mb-4 flex items-center gap-4 whitespace-nowrap border-b border-[#E4E4E7] pb-2">
       <div
         className={`${product.is_on_sale ? '' : 'hidden'} space-x-2 rtl:space-x-reverse whitespace-nowrap`}
       >
-        <p className="text-red-800 font-bold text-xl inline-block">
+        <span className="inline-block text-2xl font-bold text-primary">
           {product.sale_price} <CurrencySymbol currency={priceCurrency} />
-        </p>
-        <span className="text-gray-500 line-through">
+        </span>
+        <span className="text-xl text-[#9F9FA9] line-through">
           {product.regular_price} <CurrencySymbol currency={priceCurrency} />
         </span>
       </div>
       <div className={`gap-4 ${product.is_on_sale ? 'hidden' : 'flex'}`}>
         {product.starting_price && <span>{t('pages.products.starting_price')}</span>}
-        <p className="font-bold text-xl inline-block">
+        <span className="inline-block text-xl font-bold text-primary lg:text-[28px]">
           {product.starting_price ?? product.price} <CurrencySymbol currency={priceCurrency} />
-        </p>
+        </span>
       </div>
     </div>
   );
@@ -237,7 +230,7 @@ function lazyIframes(html: string): string {
   );
 }
 
-function ProductDescription({ product }: { product: Product }) {
+export function ProductDescription({ product }: { product: Product }) {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
 

@@ -1,16 +1,15 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useRouterState } from '@tanstack/react-router';
 import themeTranslations from 'virtual:twilight/theme-translations';
 import { useTwilight } from '@salla.sa/twilight-theme-engine/providers';
 import { useTranslation } from '@salla.sa/twilight-theme-engine/i18n';
 import { useUser } from '@salla.sa/twilight-theme-engine/hooks/useUser';
-import { Footer } from '@salla.sa/twilight-theme-engine/layout';
-import { Header } from './Header';
+import { TallahHeader } from './tallah/TallahHeader';
+import { TallahFooter } from './tallah/TallahFooter';
 import { ImportantLinksSheet } from './ImportantLinksSheet';
 import { MobileAccountSheet } from './MobileAccountSheet';
 import { MobileBottomBar } from './MobileBottomBar';
-import { MobilePageTitleBar } from './MobilePageTitleBar';
 import { fillComponentTranslations, type ComponentLang } from '../../lib/componentTranslations';
 
 /**
@@ -149,20 +148,27 @@ export function ThemeLayout({ children }: ThemeLayoutProps) {
   }, []);
 
   const imgRatio = productImageRatio(theme?.settings?.product_card_img_ratio);
+  // TALLAH's header and footer are this theme's only ones. `header_layout` is deliberately not read:
+  // a store can still carry the Raed starter's saved `default` / `lite`, and honouring it brought Raed back.
+  // The Twig theme's page tokens, from master.twig: the `bg_color` / `text_color` settings.
+  const tokens = {
+    '--color-background': (theme?.settings as { bg_color?: string } | undefined)?.bg_color || '#F4F4F5',
+    '--color-font': (theme?.settings as { text_color?: string } | undefined)?.text_color || '#18181B',
+  } as CSSProperties;
 
   return (
     <>
       <div
         className={`app-inner flex flex-col min-h-full product-card-img--${imgRatio}`}
+        style={tokens}
         suppressHydrationWarning
       >
-        <Header navOpen={navOpen} onNavOpenChange={setNavOpen} />
-        <MobilePageTitleBar />
+        <TallahHeader navOpen={navOpen} onNavOpenChange={setNavOpen} />
         <main id="main-content" className="flex-1">
           {children}
         </main>
         <Suspense fallback={null}>
-          <Footer />
+          <TallahFooter />
         </Suspense>
         <MobileBottomBar
           navOpen={navOpen}

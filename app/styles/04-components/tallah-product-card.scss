@@ -1,0 +1,217 @@
+/*
+  TALLAH's vertical product card (`TallahProductCard.tsx`), ported from `AR_product_card.scss` and
+  `product-card.js` of the fork: a square-cornered card, an image that flips to the second image on
+  hover, a wishlist button that slides in from the top, and the price beside a round add button.
+*/
+/* `.s-product-card-vertical` too: product.scss styles that class's title / content with the same weight. */
+.tallah-card.s-product-card-vertical {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  background-color: var(--color-background);
+  border-radius: 0;
+
+  &:hover .flex-action {
+    top: 5px;
+    opacity: 1;
+  }
+
+  /* --- image --------------------------------------------------------------- */
+  .s-product-card-image {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 0;
+    min-height: clamp(19rem, 15.1268rem + 16.5258vw, 30rem);
+    max-height: clamp(19rem, 15.1268rem + 16.5258vw, 30rem);
+    height: clamp(19rem, 15.1268rem + 16.5258vw, 30rem);
+  }
+
+  /* Hover flip between the main and the second image. */
+  .product-flip-wrapper {
+    display: block;
+    position: relative;
+    perspective: 1000px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .product-flip-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform-style: preserve-3d;
+  }
+
+  .s-product-card-image:hover .product-flip-inner.has-flip,
+  .product-flip-wrapper:focus-within .product-flip-inner.has-flip {
+    transform: rotateY(180deg);
+
+    /* No hover on touch screens, so no flip there. */
+    @media (max-width: 768px) {
+      transform: none;
+    }
+  }
+
+  .product-flip-face {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 0;
+  }
+
+  .product-flip-face.front {
+    z-index: 2;
+    transform: rotateY(0deg);
+  }
+
+  .product-flip-face.back {
+    z-index: 1;
+    transform: rotateY(180deg);
+  }
+
+  /* The badge stays readable over the flip. */
+  .s-product-card-promotion-title {
+    position: absolute;
+    top: 10px;
+    inset-inline-start: 10px;
+    z-index: 3;
+    transition: opacity 0.3s ease;
+  }
+
+  /* --- the wishlist button: in the corner on phones, sliding down from above on hover --- */
+  .flex-action {
+    position: absolute;
+    top: 5px;
+    inset-inline-end: 0.5rem;
+    z-index: 10;
+    display: flex;
+    gap: 0.25rem;
+    transition: all 0.3s;
+
+    @media (min-width: 768px) {
+      top: -2.5rem;
+      opacity: 0;
+    }
+
+    .s-product-card-wishlist-btn {
+      position: static;
+      cursor: pointer;
+      opacity: 1;
+      transition: all 0.3s ease-in-out;
+    }
+  }
+
+  .tallah-card__out {
+    position: absolute;
+    top: 0;
+    inset-inline-start: 0;
+    z-index: 3;
+    padding: 6px 10px;
+    background: var(--color-background);
+  }
+
+  /* --- content ------------------------------------------------------------- */
+  .s-product-card-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    /* the Twig card: 4px above, 8px at the sides */
+    padding: 4px 8px;
+  }
+
+  .s-product-card-content-category h3 {
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.5rem;
+    color: var(--color-primary);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .s-product-card-content-title {
+    font-size: clamp(0.875rem, 0.8032rem + 0.3218vw, 1.125rem);
+    font-weight: 400;
+    line-height: 24px;
+    margin: 0;
+    color: var(--color-graytext, color-mix(in srgb, var(--color-font) 70%, transparent));
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* The engine styles the link inside the title (14px); the Twig card lets it follow the title. */
+  .s-product-card-content-title a,
+  .s-product-card-content-category a {
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .s-product-card-content-sub {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: auto 0 0;
+    padding-top: 10px;
+  }
+
+  .product-price h4 {
+    font-size: clamp(1rem, 0.9282rem + 0.3218vw, 1.25rem);
+    color: var(--color-font);
+  }
+
+  .s-product-card-sale-price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+
+    h4 {
+      font-size: clamp(1.096875rem, 1.05rem + 0.2vw, 1.25rem);
+      color: var(--color-font);
+    }
+
+    span {
+      font-size: clamp(0.8rem, 0.9282rem + 0.3218vw, 1rem);
+      color: color-mix(in srgb, var(--color-font) 50%, transparent);
+      text-decoration: line-through;
+    }
+  }
+
+  .s-product-card-starting-price p {
+    font-size: 0.75rem;
+    color: color-mix(in srgb, var(--color-font) 50%, transparent);
+  }
+
+  .tallah-card__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* The round add-to-cart / notify button. */
+  salla-add-product-button {
+    button,
+    .s-button-element {
+      width: 2rem;
+      height: 2rem;
+      border: 0;
+      border-radius: 9999px;
+      padding: 0;
+      background-color: #f4f4f5 !important;
+      color: var(--color-font);
+    }
+  }
+}

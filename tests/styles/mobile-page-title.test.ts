@@ -94,21 +94,32 @@ describe('breadcrumbs on phones', () => {
   });
 });
 
-describe('filter bar on phones', () => {
-  it('is slimmer than the desktop bar', async () => {
+describe('category toolbar (TALLAH product/index.twig)', () => {
+  async function listRoot(): Promise<Root> {
     const { css } = sass.compile(`${themeRoot}app/styles/04-components/product-list.scss`);
-    const root = (
+    return (
       await postcss([tailwindcss({ ...tailwindConfig, content: [{ raw: '' }] })]).process(css, {
         from: undefined,
       })
     ).root;
+  }
 
-    const [desktop] = rulesFor(root, '.s-catalog-toolbar');
-    expect(decl(desktop, 'min-height')).toBe('3.25rem');
+  it('shows the filter trigger below lg and hides it from lg up', async () => {
+    const root = await listRoot();
+    const rules = rulesFor(root, '.AR-index .filters-trigger');
+    const base = rules.find((r) => r.parent?.type === 'root');
+    const desktop = rules.find((r) => (r.parent as AtRule).params === '(min-width: 1024px)');
+    expect(decl(base as Rule, 'display')).toBe('inline-flex');
+    expect(decl(desktop as Rule, 'display')).toBe('none');
+  });
 
-    const [phone] = rulesFor(root, '.s-catalog-toolbar-sticky .s-catalog-toolbar');
-    expect((phone.parent as AtRule).params).toBe('(max-width: 767px)');
-    expect(decl(phone, 'min-height')).toBe('2.75rem');
+  it('switches the phone grid between one and two columns', async () => {
+    const root = await listRoot();
+    const [one] = rulesFor(root, '.s-products-list-wrapper.s-products-list-vertical-cards.tallah-list-grid.tallah-list-grid--one-column');
+    const [two] = rulesFor(root, '.s-products-list-wrapper.s-products-list-vertical-cards.tallah-list-grid.tallah-list-grid--two-columns');
+    expect((one.parent as AtRule).params).toBe('(max-width: 1023px)');
+    expect(decl(one, 'grid-template-columns')).toBe('repeat(1, minmax(0, 1fr))');
+    expect(decl(two, 'grid-template-columns')).toBe('repeat(2, minmax(0, 1fr))');
   });
 });
 

@@ -9,6 +9,13 @@ import {
 import { SliderSkeleton } from '@salla.sa/twilight-components-react';
 import { routeTree } from './routeTree.gen';
 import {
+  ArCustomTestimonials,
+  ArHero2,
+  ArHeroSection,
+  ArOurProducts,
+  ArProductsBanner,
+  ArPromoBanner,
+  ArSpecialBanner,
   Brands,
   CustomTestimonials,
   EnhancedSlider,
@@ -74,12 +81,29 @@ registerHomeComponents({
   'slider-products-with-header': SliderProductsWithHeader,
   'enhanced-square-banners': EnhancedSquareBanners,
   blog: Blog,
+  // TALLAH custom blocks (`home.AR-*`): the registry key is the manifest `path` without `home.`.
+  'AR-Hero-2': ArHero2,
+  'AR-special-banner': ArSpecialBanner,
+  'Ar-Promo-banner': ArPromoBanner,
+  'AR-Products-banner': ArProductsBanner,
+  'AR-Hero-section': ArHeroSection,
+  'AR-Custom-testimonials': ArCustomTestimonials,
+  AR_our_products: ArOurProducts,
 });
 
 // Wrapper `<section>` classes for `featured-products` — the engine only styles
 // the literal `styleN` values; this covers the semantic `view_style`s too.
 // `custom-testimonials` gets `s-block--full-bg` so the gray band runs edge-to-edge.
 registerHomeComponentConfig({
+  // 90vh banner (100svh on phones): reserve it for a lazy placement so the page does not jump.
+  'AR-Hero-2': { height: '90vh' },
+  // Reserved heights: the special banners are 30rem / 43.75rem, the promo and products rows hold a 40.6rem image.
+  'AR-special-banner': { height: '43.75rem' },
+  'Ar-Promo-banner': { height: '45rem' },
+  'AR-Products-banner': { height: '45rem' },
+  'AR-Hero-section': { height: '90vh' },
+  'AR-Custom-testimonials': { height: '36rem' },
+  AR_our_products: { height: '40rem' },
   'featured-products': featuredProductsConfig,
   'featured-products-special-offer': featuredProductsConfig,
   'featured-products-special-product': featuredProductsConfig,

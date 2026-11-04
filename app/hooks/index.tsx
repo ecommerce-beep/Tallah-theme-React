@@ -3,6 +3,11 @@ import type { Product } from '@salla.sa/twilight-theme-engine/types';
 import { AddProductToast } from '../components/cart';
 import { DigitalFilesSettings } from '../components/product';
 
+/** Whether TALLAH's side cart is on (see `layout/tallah/settings.ts`), which takes over the add-to-cart feedback. */
+function isSideCartActive(settings: unknown): boolean {
+  return (settings as { enable_side_cart?: boolean } | undefined)?.enable_side_cart === true;
+}
+
 export function registerThemeHooks() {
   // Register AddProductToast at body:end hook slot. Default on (twilight.json
   // ships the setting `"value": true`); only an explicit `false` turns it off.
@@ -11,6 +16,8 @@ export function registerThemeHooks() {
     (context: HookContext) => {
       const { twilight } = context;
       if (twilight?.theme?.settings?.enable_add_product_toast === false) return null;
+      // The side cart opens by itself when an item is added: no second popup for the same event.
+      if (isSideCartActive(twilight?.theme?.settings)) return null;
       return <AddProductToast />;
     },
     50

@@ -5,7 +5,7 @@ import { product, type ProductsListSource } from '@salla.sa/twilight-theme-engin
 import { Link } from '@salla.sa/twilight-theme-engine/common';
 import { ProductsListSkeleton } from '@salla.sa/twilight-components-react';
 import { ScrollCarousel } from '../common';
-import { ProductCard } from '../product';
+import { ProductCard, TallahProductCard } from '../product';
 import { blockLimit } from '../../lib/blockLimit';
 
 export interface ProductsSliderProps {
@@ -24,6 +24,8 @@ export interface ProductsSliderProps {
    * count is 0 instead of leaving an empty node in the DOM.
    */
   onResolve?: (count: number) => void;
+  /** Render the TALLAH card (the product page's "similar products") instead of the engine card wrapper. */
+  tallahCards?: boolean;
 }
 
 /**
@@ -34,7 +36,7 @@ export interface ProductsSliderProps {
  * {@link ScrollCarousel} — a native scroll row with a progress bar + arrows,
  * matching the homepage testimonials. Styling: `04-components/home-blocks.scss`.
  */
-export function ProductsSlider({ data, onResolve }: ProductsSliderProps) {
+export function ProductsSlider({ data, onResolve, tallahCards }: ProductsSliderProps) {
   const { t } = useTranslation();
   const source = data.products?.source;
   const sourceValue = data.products?.source_value ?? undefined;
@@ -113,7 +115,7 @@ export function ProductsSlider({ data, onResolve }: ProductsSliderProps) {
         >
           {(items ?? []).map((item) => (
             <div key={item.id} className="s-products-carousel__slide">
-              <ProductCard product={item} />
+              {tallahCards ? <TallahProductCard product={item} /> : <ProductCard product={item} />}
             </div>
           ))}
         </ScrollCarousel>

@@ -10,3 +10,7 @@ coverage/
 tsconfig.tsbuildinfo
 .tanstack/
 app/routeTree.gen.ts
+
+# Local theme editor state (`pnpm dev` -> /__twilight/editor): per-developer, holds demo-store content; not committed.
+twilight.preview.json
+twilight-preview-assets/

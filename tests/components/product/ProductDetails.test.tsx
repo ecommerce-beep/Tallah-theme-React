@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vite
 import { render, waitFor, act } from '@testing-library/react';
 import { resetWishlistStore } from '@salla.sa/twilight-theme-engine/hooks/useWishlist';
 import type { Product } from '@salla.sa/twilight-theme-engine/types';
-import { ProductDetails } from '../../../app/components/product/ProductDetails';
+import {
+  ProductDescription,
+  ProductDetails,
+} from '../../../app/components/product/ProductDetails';
 
 vi.mock('@salla.sa/twilight-theme-engine/i18n', () => ({
   useTranslation: () => ({
@@ -188,7 +191,7 @@ describe('ProductDetails price', () => {
     );
 
     const price = () =>
-      [...container.querySelectorAll('p')].find((p) => p.textContent?.includes('118.66'));
+      [...container.querySelectorAll('.product-details__price span')].find((el) => el.textContent?.includes('118.66'));
     await waitFor(() => expect(price()?.textContent).toContain('EUR'));
     expect(price()?.querySelector('.sicon-sar')).toBeNull();
   });
@@ -224,7 +227,7 @@ describe('ProductDetails description embeds', () => {
       '<iframe loading = "eager" src="https://maps.test/spaced"></iframe>' +
       '<iframe title="A > B" loading="eager" src="https://maps.test/quoted"></iframe>' +
       '<iframe title="no loading=here" src="https://player.vimeo.com/video/1"></iframe>';
-    const { container } = render(<ProductDetails product={makeProduct({ description })} />);
+    const { container } = render(<ProductDescription product={makeProduct({ description })} />);
 
     const frames = () => [...container.querySelectorAll('.product__description iframe')];
     await waitFor(() => expect(frames()).toHaveLength(5));

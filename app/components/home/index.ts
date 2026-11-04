@@ -1,3 +1,10 @@
+export { ArCustomTestimonials } from './ArCustomTestimonials';
+export { ArHero2 } from './ArHero2';
+export { ArOurProducts } from './ArOurProducts';
+export { ArHeroSection } from './ArHeroSection';
+export { ArProductsBanner } from './ArProductsBanner';
+export { ArPromoBanner } from './ArPromoBanner';
+export { ArSpecialBanner } from './ArSpecialBanner';
 export { Brands } from './Brands';
 export { CustomTestimonials } from './CustomTestimonials';
 export { EnhancedSlider } from './EnhancedSlider';

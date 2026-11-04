@@ -1,16 +1,11 @@
 import { type ComponentRef, type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { SallaSlider } from '@salla.sa/twilight-components-react/slider';
-import { SallaSocialShare } from '@salla.sa/twilight-components-react/social-share';
 import { useTwilight } from '@salla.sa/twilight-theme-engine/providers';
 import { useTranslation } from '@salla.sa/twilight-theme-engine/i18n';
-import { useWishlist } from '@salla.sa/twilight-theme-engine/hooks/useWishlist';
 import { Image } from '@salla.sa/twilight-theme-engine/common';
 import { isNativeApp } from '@salla.sa/twilight-theme-engine/native-app';
 import type { Product, ProductImage } from '@salla.sa/twilight-theme-engine/types';
-import { ArrowRightIcon } from '../icons';
-import { useHydrated } from '../../hooks/useHydrated';
-import { useMobileViewport } from '../../hooks/useMobileViewport';
-import { ProductMetadata } from './ProductMetadata';
+import { attachImageZoom } from '../../lib/imageZoom';
 
 export interface ProductGalleryProps {
   product: Product;
@@ -36,6 +31,19 @@ function legacyGalleryMedia(images: ProductImage[]): GalleryMedia[] {
 }
 
 /**
+ * single.twig's `thumbs-config`: four thumbs below the image, six from `sm`, a vertical column of five from `lg`.
+ * Slides are sized by the slider, so a product with few images keeps a short column.
+ */
+const THUMBS_CONFIG = {
+  spaceBetween: 8,
+  slidesPerView: 4,
+  breakpoints: {
+    640: { slidesPerView: 6 },
+    1024: { slidesPerView: 5, direction: 'vertical', vertical: { enabled: true } },
+  },
+};
+
+/**
  * Theme fork of the engine `ProductGallery`.
  *
  * Differs from upstream in three ways:
@@ -55,13 +63,19 @@ function legacyGalleryMedia(images: ProductImage[]): GalleryMedia[] {
  */
 export function ProductGallery({ product }: ProductGalleryProps) {
   const { t } = useTranslation();
-  const wishlist = useWishlist();
   const { theme } = useTwilight();
   const sliderId = `details-slider-${product.id}`;
+  const gallerySettings = theme.settings as {
+    grid_or_slider_products_page?: boolean;
+    grid_or_slider_in_mobile?: boolean;
+  };
+  // single.twig: on `lg` the images can be a two-column grid instead of the slider; phones keep the
+  // slider when `grid_or_slider_in_mobile` is on, and get the grid otherwise.
+  const gridDesktop = gallerySettings.grid_or_slider_products_page === true;
+  const mobileSlider = gallerySettings.grid_or_slider_in_mobile === true;
+  const hasAutoplay = (theme.settings as { enable_autoplay?: boolean }).enable_autoplay === true;
   const sliderRef = useRef<ComponentRef<typeof SallaSlider>>(null);
   const objectFit = theme.settings.slider_background_size ?? 'cover';
-  const hydrated = useHydrated();
-  const isMobile = useMobileViewport();
   // `onAfterInit` fires once Swiper actually finishes laying the slider out —
   // later than `hydrated` (which only means React has mounted; the slider web
   // component upgrades and initializes on its own, separate timeline).
@@ -105,8 +119,24 @@ export function ProductGallery({ product }: ProductGalleryProps) {
         : [];
 
   const { posterUrl, hidePoster } = useSliderPoster(images[0]);
+  useModelViewer(images.some((image) => Boolean(image.three_d_image_url)));
 
   const hasManyImages = images.length > 1;
+  useImageZoom(sliderRef, sliderReady && !gridDesktop && theme.settings.imageZoom === true, product.id);
+  useReducedMotionAutoplay(sliderRef, sliderReady && hasAutoplay && hasManyImages);
+  const sliderConfig = {
+    watchOverflow: true,
+    autoHeight: true,
+    ...(hasAutoplay && hasManyImages
+      ? {
+          autoplay: {
+            delay: 3000,
+            disableOnInteraction: false,
+            pauseOnMouseEnter: theme.settings.imageZoom === true,
+          },
+        }
+      : {}),
+  };
   const openNativeGallery = (selected: ProductImage) => {
     if (!isNativeApp()) return false;
     const mobile = window.salla?.mobile as
@@ -125,54 +155,45 @@ export function ProductGallery({ product }: ProductGalleryProps) {
     // too, visually shifting the whole gallery down 96px while the content
     // after it (ProductDetails' title / tags) still flowed right where the
     // gallery would have sat unshifted — the two rendered on top of each other.
-    <div className={galleryClassName(product, images[0])}>
-      {/* Mobile: a floating bar over the top of the image — back on one side,
-          wishlist + share on the other. Hidden until hydrated, then slides
-          down into place instead of popping in wherever the page happens to
-          be mid-load. Styling: `04-components/product.scss`. */}
-      <div className={`product-gallery__bar md:hidden${hydrated ? ' is-visible' : ''}`}>
-        <button
-          type="button"
-          className="product-gallery__bar-btn"
-          onClick={() => {
-            if (window.history.length > 1) window.history.back();
-            else window.location.assign('/');
-          }}
-          aria-label={t('blocks.header.back', 'Back')}
+    <div className={galleryClassName(images[0])}>
+      {gridDesktop && (
+        <div
+          className={`tallah-gallery-grid grid-cols-2 gap-2 lg:gap-4 ${mobileSlider ? 'hidden lg:grid' : 'grid'}`}
         >
-          <ArrowRightIcon aria-hidden="true" />
-        </button>
-        {/* Waits for the slider itself (`sliderReady`, not just `hydrated`) so
-            it doesn't slide in while the images underneath are still loading. */}
-        <div className={`product-gallery__bar-actions${sliderReady ? ' is-visible' : ''}`}>
-          <button
-            type="button"
-            className={`product-gallery__bar-btn btn--wishlist ${wishlist.has(Number(product.id)) ? 'is-added' : 'not-added'}`}
-            data-id={product.id}
-            onClick={() => window.salla?.wishlist?.toggle?.(product.id)}
-            aria-label={t('pages.products.add_to_wishlist', 'Add to wishlist')}
-          >
-            <i className="sicon-heart" aria-hidden="true" />
-          </button>
-          <SallaSocialShare
-            className="product-gallery__bar-btn"
-            aria-label={t('blocks.header.share', 'Share')}
-          />
+          {product.promotion_title && (
+            <div className="promotion-title">{product.promotion_title}</div>
+          )}
+          {images.map((image, index) => (
+            <div
+              key={image.id ?? image.three_d_image_url ?? image.video_url ?? image.url}
+              className={images.length === 1 ? 'col-span-2' : undefined}
+            >
+              <ImageSlide
+                image={image}
+                product={product}
+                index={index}
+                objectFit={objectFit}
+                lightboxReady={lightboxReady}
+                onNativeOpen={openNativeGallery}
+              />
+            </div>
+          ))}
         </div>
-      </div>
+      )}
 
+      <div className={gridDesktop ? (mobileSlider ? 'lg:hidden' : 'hidden') : undefined}>
       <SallaSlider
         ref={sliderRef}
         id={sliderId}
         className="details-slider rounded image-slider"
         type="thumbs"
-        pagination
         loop={false}
         autoHeight
         listenToThumbnailsOption
+        showControls={false}
         showThumbsControls={false}
-        sliderConfig={{ watchOverflow: true, autoHeight: true }}
-        thumbsConfig={{ slidesPerView: 'auto', spaceBetween: 8 }}
+        sliderConfig={sliderConfig}
+        thumbsConfig={THUMBS_CONFIG}
         onAfterInit={() => {
           setSliderReady(true);
           hidePoster();
@@ -211,7 +232,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
           // — before hydration this content is still plain unstyled light-DOM
           // children of `salla-slider`, so it was briefly visible on mobile
           // until Stencil moved/wrapped it and the vendor-class rule could apply.
-          <div slot="thumbs" className="hidden md:block">
+          <div slot="thumbs">
             {images.map((image, index) => (
               <ThumbSlide
                 key={image.id ?? image.three_d_image_url ?? image.video_url ?? image.url}
@@ -222,8 +243,9 @@ export function ProductGallery({ product }: ProductGalleryProps) {
           </div>
         )}
       </SallaSlider>
+      </div>
 
-      {posterUrl && (
+      {posterUrl && !gridDesktop && (
         <div className="product-gallery__poster" aria-hidden="true">
           <Image
             src={posterUrl}
@@ -235,32 +257,92 @@ export function ProductGallery({ product }: ProductGalleryProps) {
           />
         </div>
       )}
-
-      {/* Product metadata / specs — on `md`+ it renders here, below the slider.
-          On mobile it moves to the end of the description in `ProductDetails`.
-          Both copies render until hydration completes (matches the pre-hydration
-          CSS-hidden state exactly, so no SSR/first-paint mismatch) — once
-          `hydrated`, only the copy the current viewport actually shows stays
-          mounted, so a `has_metadata` product doesn't run two full
-          `<SallaMetadata>` instances (each its own async spec fetch, its own
-          MutationObserver, its own click listener) for the rest of the page's
-          life on every load. */}
-      {product.has_metadata && (!hydrated || !isMobile) && (
-        <ProductMetadata className="mt-8 hidden md:block" />
-      )}
     </div>
   );
 }
 
-function galleryClassName(product: Product, first: ProductImage | undefined): string {
+function galleryClassName(first: ProductImage | undefined): string {
   return [
     'product-gallery',
     first?.three_d_image_url && 'product-gallery--model',
-    'sidebar relative md:top-24 w-full md:!w-2/4 rtl:ml-8 ltr:mr-8 pb-8 md:pb-16 overflow-hidden shrink-0',
-    !product.has_metadata && 'md:sticky',
+    // single.twig: the gallery column is 66% of the row and sticks while the buy box scrolls.
+    'sidebar relative !w-full lg:!w-[66%] lg:!sticky lg:top-8 lg:pb-16 shrink-0',
   ]
     .filter(Boolean)
     .join(' ');
+}
+
+/** Desktop only (`lg`), as in Twig: a magnifier lens on the active image, moved along with the slider. */
+function useImageZoom(
+  sliderRef: RefObject<HTMLElement | null>,
+  enabled: boolean,
+  productId: number | string
+) {
+  useEffect(() => {
+    const root = sliderRef.current;
+    if (!enabled || !root) return;
+    let cleanups: Array<() => void> = [];
+    let timer = 0;
+    const apply = () => {
+      if (window.innerWidth < 1024) return;
+      const img = root.querySelector<HTMLImageElement>('.magnify-wrapper.swiper-slide-active img');
+      if (img) cleanups.push(attachImageZoom(img, 2));
+    };
+    const schedule = () => {
+      // wait for Swiper to set the active class / the resize to settle
+      window.clearTimeout(timer);
+      timer = window.setTimeout(apply, 250);
+    };
+    schedule();
+    root.addEventListener('slideChange', schedule);
+    window.addEventListener('resize', schedule);
+    return () => {
+      window.clearTimeout(timer);
+      root.removeEventListener('slideChange', schedule);
+      window.removeEventListener('resize', schedule);
+      cleanups.forEach((cleanup) => cleanup());
+      cleanups = [];
+    };
+  }, [sliderRef, enabled, productId]);
+}
+
+/** Autoplay is movement the visitor did not ask for: stop it when the system asks for reduced motion (product.js). */
+function useReducedMotionAutoplay(sliderRef: RefObject<HTMLElement | null>, enabled: boolean) {
+  useEffect(() => {
+    const root = sliderRef.current as (HTMLElement & { sliderInstance?: () => Promise<unknown> }) | null;
+    if (!enabled || !root || typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let alive = true;
+    let apply: (() => void) | undefined;
+    void Promise.resolve(root.sliderInstance?.()).then((instance) => {
+      const swiper = instance as { autoplay?: { start: () => void; stop: () => void }; params?: { autoplay?: unknown } } | undefined;
+      if (!alive || !swiper?.autoplay || !swiper.params?.autoplay) return;
+      apply = () => (query.matches ? swiper.autoplay?.stop() : swiper.autoplay?.start());
+      apply();
+      query.addEventListener('change', apply);
+    });
+    return () => {
+      alive = false;
+      if (apply) query.removeEventListener('change', apply);
+    };
+  }, [sliderRef, enabled]);
+}
+
+const MODEL_VIEWER_SRC = 'https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js';
+
+/**
+ * `single.twig` loads Google's `<model-viewer>` only for a product with a 3D image (`has_3d_image`);
+ * without it the 3D slide is an empty box. One module script for the whole session.
+ */
+function useModelViewer(needed: boolean) {
+  useEffect(() => {
+    if (!needed || customElements.get('model-viewer')) return;
+    if (document.querySelector(`script[src="${MODEL_VIEWER_SRC}"]`)) return;
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = MODEL_VIEWER_SRC;
+    document.head.appendChild(script);
+  }, [needed]);
 }
 
 /**

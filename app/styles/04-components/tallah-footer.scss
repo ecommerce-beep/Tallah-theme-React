@@ -1,0 +1,224 @@
+/*
+ * TALLAH footer (`components/layout/tallah/TallahFooter.tsx`, `Newsletter.tsx`).
+ * Migrated from the Twig theme's `footer.scss` in its default, light state
+ * (`footer-is-light`): the whole footer sits on the store's primary color with
+ * `--color-background` text. Both are theme tokens, set on `.app-inner` by
+ * `ThemeLayout` from the `bg_color` setting and the engine's `--color-primary`.
+ */
+
+.tallah-footer {
+  @apply relative mt-8 sm:mt-16;
+  margin-inline: 0;
+  background: var(--color-primary);
+  color: var(--color-background);
+
+  h3 {
+    @apply mb-3 text-[clamp(1rem,0.9617rem+0.1633vw,1.125rem)] font-medium leading-[25px] lg:mb-5;
+  }
+
+  a {
+    @apply transition-all duration-500 ease-in-out hover:opacity-75;
+    color: color-mix(in srgb, var(--color-primary) 30%, white);
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 25px;
+
+    &:hover {
+      color: var(--color-background);
+    }
+  }
+
+  .s-menu-footer-item {
+    @apply mb-3 text-base font-normal not-italic leading-6 tracking-normal;
+  }
+
+  .s-payments-list-item {
+    width: 50px;
+    background-color: var(--color-background);
+  }
+
+  .s-social-list {
+    @apply justify-center md:justify-start;
+  }
+
+  .s-social-link a {
+    @apply flex h-8 w-8 items-center justify-center rounded-md border bg-transparent text-sm transition-all duration-300;
+    border-color: color-mix(in srgb, var(--color-primary) 50%, white);
+    color: color-mix(in srgb, var(--color-primary) 50%, white);
+
+    &:hover {
+      background-color: color-mix(in srgb, var(--color-primary) 50%, white);
+      color: var(--color-font);
+      opacity: 1;
+    }
+  }
+
+  salla-apps-icons {
+    h3 {
+      @apply hidden;
+    }
+
+    .s-apps-icons-item img {
+      max-width: 119px;
+    }
+  }
+}
+
+/* The Twig theme's `.container` (`02-generic/common.scss`): full width with side padding that grows by
+   breakpoint. It is global there; here it is scoped to this footer and header so the pages not yet
+   migrated keep the starter's container. */
+.tallah-footer .container,
+.tallah-header .container {
+  @apply max-w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16;
+}
+
+/* Page ends on a full-bleed block: no gap above the footer (as the engine footer). */
+#main-content:has(> section[class*='full-bg']:last-of-type) + .tallah-footer {
+  margin-top: 0;
+}
+
+.tallah-footer__inner {
+  @apply pb-0 pt-11 md:pb-9;
+  background: var(--color-primary);
+}
+
+.tallah-footer__grid {
+  @apply flex flex-col items-center justify-start gap-4 md:grid md:grid-cols-3 md:items-start md:gap-6 ltr:lg:grid-cols-[2fr_2fr_3fr] rtl:lg:grid-cols-[3fr_2fr_2fr];
+}
+
+.tallah-footer__links {
+  @apply order-2 hidden md:block;
+
+  h3 {
+    @apply text-center md:text-start;
+  }
+}
+
+.tallah-footer__contacts {
+  @apply order-3 flex w-full items-start justify-between gap-2;
+
+  @media (max-width: 768px) {
+    .s-contacts-item {
+      justify-content: start !important;
+    }
+  }
+}
+
+.tallah-footer__links-mobile {
+  @apply block md:hidden;
+
+  h3 {
+    @apply text-start;
+  }
+}
+
+.tallah-footer__brand {
+  @apply order-1 text-center md:text-start ltr:md:order-4 rtl:md:order-1;
+}
+
+.tallah-footer__logo-link {
+  @apply m-0 flex items-center justify-center md:justify-start;
+}
+
+.tallah-footer__logo {
+  @apply mb-4 block h-auto;
+
+  img {
+    @apply h-full w-full;
+  }
+}
+
+.tallah-footer__description {
+  @apply mb-6;
+
+  p {
+    @apply font-sans text-base font-normal leading-6 tracking-normal;
+  }
+}
+
+.tallah-footer__bottom {
+  background: var(--color-primary);
+}
+
+.tallah-footer__bottom-inner {
+  @apply grid grid-cols-1 items-center justify-items-center gap-3 bg-transparent py-4 text-center md:flex md:flex-row md:justify-between;
+
+  /* Visual order: apps, tax, payments (the same as the Twig footer). */
+  .tallah-footer__payments {
+    @apply order-3;
+  }
+
+  .tallah-footer__apps {
+    @apply order-1;
+  }
+}
+
+.tallah-footer__tax {
+  @apply order-2 flex items-end gap-2;
+
+  img {
+    @apply w-10 rounded-sm transition-opacity hover:opacity-80;
+  }
+
+  p {
+    @apply mb-1 text-sm;
+  }
+
+  b {
+    @apply text-sm;
+  }
+}
+
+/* --- newsletter --------------------------------------------------------- */
+.tallah-newsletter {
+  @apply mb-8 flex flex-col-reverse justify-center gap-3 md:mb-0 md:flex-col md:items-start;
+}
+
+.tallah-newsletter__inner {
+  @apply flex flex-col justify-center gap-2 md:gap-4;
+
+  h2 {
+    @apply text-center text-[clamp(0.875rem,0.8391rem+0.1609vw,1rem)] font-medium md:text-start;
+    color: var(--color-background);
+  }
+
+  form {
+    @apply flex w-full items-center gap-2 leading-none;
+  }
+
+  input {
+    @apply h-[40px] w-full rounded-lg border-0 text-[clamp(0.75rem,0.7141rem+0.1609vw,0.875rem)] font-normal outline-none md:h-[52px] rtl:text-right ltr:text-left;
+    background: #fff; /* `bg-secondary` is not a color in the Twig theme's Tailwind config: the forms plugin's white applied */
+    color: var(--color-primary);
+
+    &::placeholder {
+      color: var(--color-primary);
+      opacity: 0.48;
+    }
+
+    &:focus::placeholder {
+      color: transparent;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-background);
+      outline-offset: 2px;
+    }
+  }
+
+  button {
+    @apply flex h-[40px] shrink-0 items-center justify-center rounded-lg border px-4 py-2 text-[14px] font-medium leading-none transition-all hover:opacity-90 md:h-[52px] md:p-5;
+    background: var(--color-primary);
+    border-color: var(--color-background);
+    color: var(--color-background);
+
+    &:hover:not(:disabled) {
+      background: var(--color-background);
+      color: var(--color-primary);
+    }
+
+    &:disabled {
+      @apply cursor-wait opacity-70;
+    }
+  }
+}

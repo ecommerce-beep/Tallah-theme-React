@@ -21,20 +21,14 @@ import { Testimonials, useReorderButtons } from '@salla.sa/twilight-theme-engine
 import { product, parseNextPageToken } from '@salla.sa/twilight-theme-engine/api/product';
 import type { ProductListLoaderData } from '@salla.sa/twilight-theme-engine/routes/product-listing';
 import type { Product } from '@salla.sa/twilight-theme-engine/types';
-import { ProductCard } from './ProductCard';
+import { TallahProductCard } from './TallahProductCard';
 import { useAppliedFilters } from '@salla.sa/twilight-theme-engine/routes/product-listing';
 import type { ProductListFilters } from '@salla.sa/twilight-theme-engine/api/product';
 import { BlockHookSlot, BottomSheet } from '../common';
-import { useAppSafeAreaTop } from '../../hooks/useAppSafeAreaTop';
-import { useScrollDirection } from '../../hooks/useScrollDirection';
-import {
-  ChevronDownIcon,
-  DashboardSquare01Icon,
-  FilterHorizontalIcon,
-  RightToLeftListBulletIcon,
-} from '../icons';
+import { FilterHorizontalIcon } from '../icons';
 
-type View = 'grid' | 'list';
+/** Mobile grid density; same localStorage key and values as the Twig theme's `product/index.twig`. */
+type Cols = 'two-columns' | 'one-column';
 
 /** localStorage-backed toolbar preference, read after mount to avoid SSR mismatch. */
 function usePref<T extends string>(
@@ -139,204 +133,178 @@ function BrandHeader({ source }: { source: ProductListLoaderData['source'] }) {
   );
 }
 
-/** The mobile title bar's height (`.mobile-page-title`, `h-12`); the toolbar pins below it. */
-const TITLE_BAR_PX = 48;
-
 /**
- * On phones the toolbar pins under the sticky title bar once it scrolls up to
- * it (`is-stuck`), slides out of view while the page scrolls down and back in
- * when it scrolls up (`is-hidden`). In its own place on the page it never
- * hides. A zero-height sentinel above it tells when it is pinned, as in
- * `Header.tsx`. Styling: `04-components/product-list.scss`; desktop keeps the
- * plain toolbar.
+ * TALLAH's toolbar (`product/index.twig`): the title centred on desktop with the sort at the end;
+ * on phones the filter trigger and sort on top, then the title with the one / two column switch.
+ * The product count sits beside the title once the whole list is known.
  */
-function MobileStickyToolbar({ children }: { children: ReactNode }) {
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  // Inside the Salla app the title bar sits below the status bar.
-  const safeTop = useAppSafeAreaTop();
-  const direction = useScrollDirection();
-  const [stuck, setStuck] = useState(false);
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || typeof IntersectionObserver === 'undefined') return;
-    const top = safeTop + TITLE_BAR_PX;
-    const observer = new IntersectionObserver(
-      // Out of view above the pin line, not below the fold.
-      ([entry]) => setStuck(!entry.isIntersecting && entry.boundingClientRect.top < top),
-      { threshold: 0, rootMargin: `-${top}px 0px 0px 0px` }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [safeTop]);
-
-  const className = [
-    's-catalog-toolbar-sticky',
-    stuck && 'is-stuck',
-    stuck && direction === 'down' && 'is-hidden',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
-  return (
-    <>
-      <div ref={sentinelRef} aria-hidden="true" />
-      <div className={className}>{children}</div>
-    </>
-  );
-}
-
-/** Filter show/hide (desktop toggle + mobile trigger) at the start, product
- * count + grid/list switch + sort select at the end. */
 function CatalogToolbar({
+  title,
   showFilters,
-  filtersHidden,
-  onToggleFiltersHidden,
   onOpenMobileFilters,
   productsCount,
-  view,
-  onViewChange,
+  cols,
+  onColsChange,
   selectedSort,
   sortOptionsWithTrans,
-  currentSortLabel,
   onSortChange,
 }: {
+  title: ReactNode;
   showFilters: boolean;
-  filtersHidden: '0' | '1';
-  onToggleFiltersHidden: () => void;
   onOpenMobileFilters: () => void;
-  /** `undefined` when the true total isn't known (more pages beyond this
-   * one) — the API is cursor-paginated with no total-count field, so
-   * `products.length` is only accurate once there's nothing left to load. */
+  /** `undefined` when more pages exist: the API has no total, so no wrong number is shown. */
   productsCount: number | undefined;
-  view: View;
-  onViewChange: (view: View) => void;
+  cols: Cols;
+  onColsChange: (cols: Cols) => void;
   selectedSort: string;
   sortOptionsWithTrans: ReturnType<typeof sortOptions>;
-  currentSortLabel: string | undefined;
   onSortChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
   const { t } = useTranslation();
+  const count =
+    productsCount !== undefined ? (
+      <span className="products-count mx-1 text-sm font-normal text-gray-500">
+        ({productsCount})
+      </span>
+    ) : null;
 
   return (
-    <div className="s-catalog-toolbar">
-      {showFilters && (
-        <div className="s-catalog-toolbar__group s-catalog-toolbar__filters">
-          <button
-            type="button"
-            className="s-catalog-toolbar__filters-toggle hidden md:inline-flex"
-            aria-pressed={filtersHidden === '1'}
-            onClick={onToggleFiltersHidden}
-          >
-            <FilterHorizontalIcon aria-hidden="true" />
-            {filtersHidden === '1'
-              ? t('blocks.catalog.show_filters', 'Show filters')
-              : t('blocks.catalog.hide_filters', 'Hide filters')}
-          </button>
-
+    <>
+      <div className="tallah-list-bar mb-4 flex items-center justify-between gap-3 sm:mb-6">
+        <h1
+          className="primary-bold w-full text-sm max-lg:sr-only md:text-xl lg:text-center"
+          id="page-main-title"
+        >
+          {title}
+          {count}
+        </h1>
+        {showFilters && (
           <button
             type="button"
             onClick={onOpenMobileFilters}
-            className="s-catalog-toolbar__filters-trigger md:hidden"
+            className="filters-trigger lg:hidden"
             aria-label={t('pages.categories.filters', 'Filters')}
           >
             <FilterHorizontalIcon aria-hidden="true" />
           </button>
-        </div>
-      )}
-
-      <div className="s-catalog-toolbar__group s-catalog-toolbar__options">
-        {productsCount !== undefined && (
-          <span className="s-catalog-toolbar__count hidden sm:inline">
-            {productsCount} {t('blocks.catalog.products_count', 'products')}
-          </span>
         )}
-
-        <div
-          className="s-catalog-toolbar__views"
-          role="group"
-          aria-label={t('blocks.catalog.view', 'View')}
-        >
-          <button
-            type="button"
-            aria-pressed={view === 'grid'}
-            aria-label={t('blocks.catalog.view_grid', 'Grid view')}
-            onClick={() => onViewChange('grid')}
-          >
-            <DashboardSquare01Icon aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-pressed={view === 'list'}
-            aria-label={t('blocks.catalog.view_list', 'List view')}
-            onClick={() => onViewChange('list')}
-          >
-            <RightToLeftListBulletIcon aria-hidden="true" />
-          </button>
-        </div>
-
         {sortOptionsWithTrans.length > 0 && (
-          <label className="s-catalog-toolbar__sort">
-            <span className="s-catalog-toolbar__sort-label">
-              {t('pages.categories.sorting', 'Sort By')}: <b>{currentSortLabel}</b>
-            </span>
-            <ChevronDownIcon aria-hidden="true" />
-            <select value={selectedSort} onChange={onSortChange}>
-              {sortOptionsWithTrans.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <select
+            id="product-filter"
+            className="form-input tallah-list-sort shrink-0"
+            value={selectedSort}
+            onChange={onSortChange}
+            aria-label={t('pages.categories.sorting', 'Sort By')}
+          >
+            {sortOptionsWithTrans.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </select>
         )}
       </div>
-    </div>
+
+      <div className="mb-4 flex items-center justify-between lg:hidden">
+        <p className="primary-bold flex-1 text-sm" aria-hidden="true">
+          {title}
+          {count}
+        </p>
+        <div className="flex flex-1 items-center justify-end gap-1.5 text-2xl">
+          <button
+            type="button"
+            className={`two-columns${cols === 'two-columns' ? ' active' : ''}`}
+            aria-pressed={cols === 'two-columns'}
+            aria-label={t('blocks.catalog.view_grid', 'Grid view')}
+            onClick={() => onColsChange('two-columns')}
+          >
+            <i className="sicon-pause" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={`one-column rotate-90${cols === 'one-column' ? ' active' : ''}`}
+            aria-pressed={cols === 'one-column'}
+            aria-label={t('blocks.catalog.view_list', 'List view')}
+            onClick={() => onColsChange('one-column')}
+          >
+            <i className="sicon-pause" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
-/** The desktop filter column (when visible) + the product grid/list itself. */
+/** Shown while the URL carries filters: the instant-apply widgets have no reset of their own. */
+function ClearFiltersButton({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      className="tallah-clear-filters link--primary mb-3 mt-1 text-sm"
+      data-testid="clear-filters"
+      onClick={onClick}
+    >
+      {t('blocks.catalog.clear_filters', 'Clear filters')}
+    </button>
+  );
+}
+
+/** The desktop filter column (lg and up, as in Twig) + the product grid itself. */
 function CatalogGrid({
-  filtersVisible,
+  toolbar,
+  hasFilters,
+  onClearFilters,
+  filtersKey,
+  showFilters,
   filters,
   listKey,
   selectedSort,
-  view,
+  cols,
   products,
   pagination,
   loader,
-  listLayoutClass,
   wideGridClass,
   filterStatus,
   onRetry,
 }: {
+  /** Rendered at the top of the content column, beside the filter column (as in Twig). */
+  toolbar: ReactNode;
+  hasFilters: boolean;
+  onClearFilters: () => void;
+  /** Remounts the filter widgets so they drop their selection after a clear. */
+  filtersKey: number;
   filterStatus: 'idle' | 'loading' | 'ready' | 'error';
   onRetry: () => void;
-  filtersVisible: boolean;
+  showFilters: boolean;
   filters: ProductListLoaderData['filters'];
   listKey: string;
   selectedSort: string;
-  view: View;
+  cols: Cols;
   products: Product[];
   pagination: ProductListLoaderData['pagination'];
   loader: ItemsLoaderFn<Product>;
-  listLayoutClass: string;
   wideGridClass: string;
 }) {
   const { t } = useTranslation();
   const location = useLocation();
 
   return (
-    <div className={filtersVisible ? 'md:grid md:grid-cols-[288px_1fr] gap-8' : ''}>
-      {filtersVisible && (
-        <SallaFilters
-          id="filters-menu"
-          className="hidden md:block lg:sticky lg:top-20"
-          filters={filters as never}
-        />
+    <div className="flex flex-col items-start lg:flex-row">
+      {showFilters && (
+        <div className="hidden w-72 flex-none lg:sticky lg:top-20 lg:block">
+          <div className="tallah-filters-head mb-4 flex items-center gap-2 text-primary">
+            <FilterHorizontalIcon aria-hidden="true" />
+            <span className="text-base font-semibold">{t('pages.categories.filters', 'Filters')}</span>
+          </div>
+          {hasFilters && <ClearFiltersButton onClick={onClearFilters} />}
+          <SallaFilters key={filtersKey} id="filters-menu" filters={filters as never} />
+        </div>
       )}
 
-      <div className="min-w-0">
+      <div className={`main-content w-full min-w-0 flex-1${showFilters ? ' lg:ms-8' : ''}`}>
+        {toolbar}
+
         <HookSlot name="product:list.items.start" />
         {/* legacy name for the same point */}
         <HookSlot name="product:index.items.start" />
@@ -362,33 +330,31 @@ function CatalogGrid({
             </div>
           ) : (
             <ItemsList<Product>
-              key={`${listKey}-${selectedSort}-${view}`}
-              resetKey={`${listKey}-${selectedSort}-${view}`}
+              key={`${listKey}-${selectedSort}`}
+              resetKey={`${listKey}-${selectedSort}`}
               items={products}
               loader={loader}
               mode={pagination?.next ? 'infinite' : 'static'}
               pageUrl={location.pathname + location.searchStr}
               className="s-products-list flex-1 min-w-0"
-              itemsClassName={`s-products-list-wrapper ${listLayoutClass}${filtersVisible ? ' s-products-list-with-filters' : ''}${wideGridClass}`}
+              itemsClassName={`s-products-list-wrapper s-products-list-vertical-cards tallah-list-grid tallah-list-grid--${cols}${showFilters ? ' s-products-list-with-filters s-products-list-filters-results' : ''}${wideGridClass}`}
               skeleton={<ProductCardSkeleton />}
               skeletonType="item"
               skeletonCount={12}
               empty={
-                <NoContent
-                  icon="sicon-shopping-bag"
-                  message={t('pages.categories.no_products', 'No products found in this category')}
-                />
+                <div className="flex w-full flex-col items-center">
+                  <NoContent
+                    icon="sicon-shopping-bag"
+                    message={t('pages.categories.no_products', 'No products found in this category')}
+                  />
+                  {hasFilters && <ClearFiltersButton onClick={onClearFilters} />}
+                </div>
               }
               t={(key, fallback) => t(key, fallback || key)}
             >
               {(items) =>
                 items.map((prod, idx) => (
-                  <ProductCard
-                    key={prod.id}
-                    product={prod}
-                    index={idx}
-                    layout={view === 'list' ? 'horizontal' : 'vertical'}
-                  />
+                  <TallahProductCard key={prod.id} product={prod} imagePriority={idx < 4} />
                 ))
               }
             </ItemsList>
@@ -422,10 +388,10 @@ function CategoryTestimonials({ enabled }: { enabled: boolean }) {
  * Theme fork of the engine `ProductListPage`, registered as `product:list-page`
  * in `app/router.tsx` for every product listing.
  *
- * Same data flow as upstream; the toolbar is rebuilt as a pill with a product
- * count, a grid / list view switch and a styled sort control, plus a desktop
- * "hide filters" toggle that collapses the filter column. View + collapse state
- * persist in `localStorage`. Upgrade notes: `FORKS.md`.
+ * Same data flow as upstream (loader, sort, filters, cursor pagination); the
+ * presentation follows TALLAH's `product/index.twig`: centred title + sort,
+ * a filter column from `lg`, a one / two column switch on phones, and the
+ * theme's `TallahProductCard`. Upgrade notes: `FORKS.md`.
  */
 
 export function ProductListPage({
@@ -444,15 +410,10 @@ export function ProductListPage({
 
   const selectedSort = query.sort;
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [view, setView] = usePref<View>('catalog-view', ['grid', 'list'], 'grid');
-  const [filtersHidden, setFiltersHidden] = usePref<'0' | '1'>(
-    'catalog-filters-hidden',
-    ['0', '1'],
-    '0'
-  );
+  const [filtersKey, setFiltersKey] = useState(0);
+  const [cols, setCols] = usePref<Cols>('gridView', ['two-columns', 'one-column'], 'two-columns');
 
   const showFilters = !!(query.filters && store?.settings?.product?.filters);
-  const filtersVisible = showFilters && filtersHidden === '0';
 
   // The selection made in `<salla-filters>` — re-queries the list (the route's
   // loader output was fetched without it).
@@ -489,8 +450,6 @@ export function ProductListPage({
   useReorderButtons(isReorder);
 
   const sortOptionsWithTrans = useMemo(() => sortOptions(selectedSort, t), [selectedSort, t]);
-  const currentSortLabel =
-    sortOptionsWithTrans.find((o) => o.id === selectedSort)?.name ?? sortOptionsWithTrans[0]?.name;
 
   useEffect(() => {
     const handleFiltersChanged = () => setFiltersOpen(false);
@@ -512,6 +471,20 @@ export function ProductListPage({
     [navigate, location.pathname, location.searchStr]
   );
 
+  // The hook's own selection (set from the URL on mount and by the widgets), not the router location.
+  const hasFilters = appliedFilters !== null;
+  const clearFilters = useCallback(() => {
+    const params = new URLSearchParams(location.searchStr);
+    Array.from(params.keys())
+      .filter((k) => k.startsWith('filters') || k === 'page')
+      .forEach((k) => params.delete(k));
+    const search = params.toString();
+    setFiltersKey((k) => k + 1);
+    // `useAppliedFilters` only learns about a new selection from this event; an empty one resets it.
+    (window as unknown as { salla?: { event?: { dispatch?: (name: string, ...args: unknown[]) => void } } }).salla?.event?.dispatch?.('salla-filters::changed', {});
+    navigate(location.pathname + (search ? `?${search}` : ''));
+  }, [navigate, location.pathname, location.searchStr]);
+
   const listKey = source.value ?? source.type;
   // Merchant blocks go on category pages only, as in Twig; offers, search and brands get none.
   const blockScope = useMemo(
@@ -521,15 +494,13 @@ export function ProductListPage({
   );
   const loader = useCatalogLoader(source, selectedSort, shownNext, appliedFilters);
 
-  const listLayoutClass =
-    view === 'list' ? 's-products-list-horizontal-cards' : 's-products-list-vertical-cards';
-  // Offers (and other filter-less lists) get the full row: 5 columns on desktop.
-  const wideGridClass = !query.filters && view === 'grid' ? ' s-products-list-cols-5' : '';
+  // Filter-less lists (offers, etc.) get the full row: 5 columns on desktop.
+  const wideGridClass = !query.filters ? ' s-products-list-cols-5' : '';
 
   return (
     <div
       key={listKey}
-      className="container px-2.5 mb-10"
+      className="AR-index container mb-10 px-2.5"
       data-source={isReorder ? 'reorder' : undefined}
     >
       {theme?.settings?.product_index_show_breadcrumbs !== false && <Breadcrumb page={page} />}
@@ -546,45 +517,41 @@ export function ProductListPage({
         scope={blockScope}
       />
 
-      <h1 className="font-bold text-xl mb-4" id="page-main-title">
-        {isBrand ? t('common.titles.products') : page.title}
-      </h1>
-
-      {/* Toolbar — one bar: filter show/hide at the start, options at the end */}
-      <MobileStickyToolbar>
-        <CatalogToolbar
+      <div className="mt-4 md:mt-10">
+        <CatalogGrid
+          hasFilters={hasFilters}
+          onClearFilters={clearFilters}
+          filtersKey={filtersKey}
+          toolbar={
+          <CatalogToolbar
+            title={isBrand ? t('common.titles.products') : page.title}
+            showFilters={showFilters}
+            onOpenMobileFilters={() => setFiltersOpen(true)}
+            // `pagination.next` truthy means more pages exist beyond this one —
+            // `products.length` (this page only) isn't the true total then, and
+            // the API's cursor pagination has no total-count field to fall back
+            // to, so show nothing rather than a number that's quietly wrong.
+            productsCount={shownNext || shownProducts.length === 0 ? undefined : shownProducts.length}
+            cols={cols}
+            onColsChange={setCols}
+            selectedSort={selectedSort}
+            sortOptionsWithTrans={sortOptionsWithTrans}
+            onSortChange={handleSortChange}
+          />
+          }
           showFilters={showFilters}
-          filtersHidden={filtersHidden}
-          onToggleFiltersHidden={() => setFiltersHidden(filtersHidden === '1' ? '0' : '1')}
-          onOpenMobileFilters={() => setFiltersOpen(true)}
-          // `pagination.next` truthy means more pages exist beyond this one —
-          // `products.length` (this page only) isn't the true total then, and
-          // the API's cursor pagination has no total-count field to fall back
-          // to, so show nothing rather than a number that's quietly wrong.
-          productsCount={shownNext ? undefined : shownProducts.length}
-          view={view}
-          onViewChange={setView}
+          filters={filters}
+          listKey={`${listKey}${filteredKey}`}
+          filterStatus={filterStatus}
+          onRetry={retryFilters}
           selectedSort={selectedSort}
-          sortOptionsWithTrans={sortOptionsWithTrans}
-          currentSortLabel={currentSortLabel}
-          onSortChange={handleSortChange}
+          cols={cols}
+          products={shownProducts}
+          pagination={{ next: shownNext ?? null }}
+          loader={loader}
+          wideGridClass={wideGridClass}
         />
-      </MobileStickyToolbar>
-
-      <CatalogGrid
-        filtersVisible={filtersVisible}
-        filters={filters}
-        listKey={`${listKey}${filteredKey}`}
-        filterStatus={filterStatus}
-        onRetry={retryFilters}
-        selectedSort={selectedSort}
-        view={view}
-        products={shownProducts}
-        pagination={{ next: shownNext ?? null }}
-        loader={loader}
-        listLayoutClass={listLayoutClass}
-        wideGridClass={wideGridClass}
-      />
+      </div>
 
       {/* App-block hook `product.index.after_products_group_with_filter` — below the listing */}
       <BlockHookSlot
@@ -599,7 +566,8 @@ export function ProductListPage({
           onClose={() => setFiltersOpen(false)}
           title={t('pages.categories.filters', 'Filters')}
         >
-          <SallaFilters id="filters-menu-mobile" filters={filters as never} />
+          {hasFilters && <ClearFiltersButton onClick={clearFilters} />}
+          <SallaFilters key={filtersKey} id="filters-menu-mobile" filters={filters as never} />
         </BottomSheet>
       )}
 

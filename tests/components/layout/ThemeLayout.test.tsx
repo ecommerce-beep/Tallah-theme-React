@@ -8,8 +8,9 @@ vi.mock('@tanstack/react-router', () => ({
   useRouterState: ({ select }: { select: (s: unknown) => unknown }) =>
     select({ location: { pathname: '/ar' } }),
 }));
+const layoutState = vi.hoisted(() => ({ settings: {} as Record<string, unknown> }));
 vi.mock('@salla.sa/twilight-theme-engine/providers', () => ({
-  useTwilight: () => ({ theme: { settings: {} }, store: {} }),
+  useTwilight: () => ({ theme: { settings: layoutState.settings }, store: {} }),
 }));
 vi.mock('@salla.sa/twilight-theme-engine/i18n', () => ({
   useTranslation: () => ({ t: (_k: string, fb?: string) => fb ?? _k }),
@@ -17,8 +18,12 @@ vi.mock('@salla.sa/twilight-theme-engine/i18n', () => ({
 vi.mock('@salla.sa/twilight-theme-engine/hooks/useUser', () => ({
   useUser: () => ({ isLoggedIn: true }),
 }));
-vi.mock('@salla.sa/twilight-theme-engine/layout', () => ({ Footer: () => null }));
-vi.mock('../../../app/components/layout/Header', () => ({ Header: () => null }));
+vi.mock('../../../app/components/layout/tallah/TallahHeader', () => ({
+  TallahHeader: () => <header data-testid="tallah-header" />,
+}));
+vi.mock('../../../app/components/layout/tallah/TallahFooter', () => ({
+  TallahFooter: () => <footer data-testid="tallah-footer" />,
+}));
 vi.mock('../../../app/components/layout/ImportantLinksSheet', () => ({
   ImportantLinksSheet: () => null,
 }));
@@ -26,9 +31,6 @@ vi.mock('../../../app/components/layout/MobileAccountSheet', () => ({
   MobileAccountSheet: () => null,
 }));
 vi.mock('../../../app/components/layout/MobileBottomBar', () => ({ MobileBottomBar: () => null }));
-vi.mock('../../../app/components/layout/MobilePageTitleBar', () => ({
-  MobilePageTitleBar: () => null,
-}));
 
 /**
  * A `salla.lang` stand-in. `subscribe` keeps the listener, as the SDK does, so
@@ -54,6 +56,21 @@ function installLang(messages: Record<string, string>) {
 afterEach(() => {
   cleanup();
   delete (window as unknown as { salla?: unknown }).salla;
+});
+
+describe('ThemeLayout header and footer', () => {
+  // The demo store still saves the Raed starter's `default`; honouring it brought Raed back.
+  it.each([undefined, 'tallah', 'default', 'lite', [{ value: 'default' }]])(
+    'always renders TALLAH, whatever header_layout is saved (%j)',
+    (saved) => {
+      layoutState.settings = saved === undefined ? {} : { header_layout: saved };
+      const { getByTestId, container } = render(<ThemeLayout>page</ThemeLayout>);
+      expect(getByTestId('tallah-header')).toBeTruthy();
+      expect(getByTestId('tallah-footer')).toBeTruthy();
+      expect(container.querySelector('.site-header, .store-footer')).toBeNull();
+      layoutState.settings = {};
+    }
+  );
 });
 
 describe("ThemeLayout's component translations", () => {

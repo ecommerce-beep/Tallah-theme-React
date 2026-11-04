@@ -1,0 +1,213 @@
+/*
+ * Header cart button and the side cart drawer (`layout/tallah/SideCart.tsx`),
+ * migrated from `#sidecart-panel` in `header.twig`.
+ */
+
+.tallah-header__cart {
+  @apply relative;
+}
+
+.tallah-header__cart-count {
+  @apply absolute -top-2.5 flex h-5 w-5 select-none items-center justify-center rounded-full bg-red-500 text-xs;
+  right: 0.5rem; /* `right-2`, physical, as in header.twig */
+  color: var(--color-background);
+}
+
+.tallah-sidecart {
+  @apply invisible fixed inset-0;
+  z-index: 101;
+  transition: visibility 0s linear 0.3s;
+
+  &.is-open {
+    @apply visible;
+    transition-delay: 0s;
+  }
+}
+
+.tallah-sidecart__backdrop {
+  @apply absolute inset-0 border-0 bg-black/50 p-0 opacity-0 transition-opacity duration-300;
+
+  .is-open > & {
+    @apply opacity-100;
+  }
+}
+
+.tallah-sidecart__panel {
+  @apply absolute top-0 flex h-full w-full flex-col bg-white text-zinc-800 transition-transform duration-300 md:w-[437px];
+  inset-inline-start: 0;
+  transform: translateX(100%);
+
+  [dir='ltr'] & {
+    transform: translateX(-100%);
+  }
+
+  .is-open > & {
+    transform: none;
+  }
+}
+
+.tallah-sidecart__close {
+  @apply absolute top-5 z-[2] flex h-7 w-7 items-center justify-center rounded-full bg-primary p-0;
+  inset-inline-end: 1.25rem;
+  color: var(--color-background);
+
+  svg {
+    @apply h-4 w-4;
+  }
+}
+
+.tallah-sidecart__body {
+  @apply grow overflow-auto px-5 pb-5 pt-14;
+
+  h2 {
+    @apply mb-8 text-xl font-semibold;
+
+    span {
+      @apply text-sm font-normal text-gray-500;
+    }
+  }
+}
+
+.tallah-sidecart__shipping {
+  @apply mb-6;
+
+  p {
+    @apply text-sm text-gray-500;
+  }
+}
+
+.tallah-sidecart__progress {
+  @apply mt-2 overflow-hidden;
+  height: 4px;
+  background-color: #e4e4e7;
+
+  div {
+    @apply h-full transition-all duration-500;
+    background-color: #c5992c;
+  }
+}
+
+.tallah-sidecart__empty {
+  @apply py-10 text-center text-gray-500;
+
+  i {
+    @apply mb-2 block text-3xl;
+  }
+}
+
+.tallah-sidecart__footer {
+  @apply mt-auto flex flex-col gap-5 border-t p-5;
+
+  /* clear the mobile bottom bar, which sits on top of the drawer (z-220) */
+  @media (max-width: 767px) {
+    padding-bottom: calc(76px + var(--safe-bottom));
+  }
+
+  form {
+    @apply border-b border-gray-200 pb-5;
+
+    label {
+      @apply block text-sm;
+    }
+
+    > div {
+      @apply mt-2.5 flex gap-2;
+    }
+
+    input {
+      @apply min-w-0 flex-1 border border-gray-300 px-3 py-2 text-sm;
+
+      &[aria-invalid='true'] {
+        @apply border-red-700;
+      }
+    }
+
+    button {
+      @apply shrink-0 border border-primary px-4 text-sm text-primary;
+
+      &.is-applied {
+        @apply border-red-700 text-red-700;
+      }
+
+      &:disabled {
+        @apply cursor-wait opacity-60;
+      }
+    }
+  }
+}
+
+.tallah-sidecart__error {
+  @apply mt-1 block text-xs text-red-700;
+}
+
+.tallah-sidecart__totals {
+  @apply flex flex-col gap-5 text-sm;
+
+  > div {
+    @apply flex justify-between;
+  }
+
+  dt {
+    @apply text-gray-500;
+  }
+
+  dd {
+    @apply font-bold;
+  }
+}
+
+.tallah-sidecart__final {
+  @apply items-center border-t pt-3;
+
+  dt {
+    @apply font-semibold text-zinc-800;
+  }
+
+  dd {
+    @apply text-lg;
+  }
+}
+
+.tallah-sidecart__actions {
+  @apply flex gap-1;
+
+  button,
+  a {
+    @apply flex flex-1 items-center justify-center border border-primary py-3 text-primary transition hover:bg-gray-100;
+  }
+
+  a.is-primary {
+    @apply bg-primary hover:bg-primary hover:opacity-90;
+    color: var(--color-background);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tallah-sidecart__panel,
+  .tallah-sidecart__backdrop,
+  .tallah-sidecart__progress div {
+    transition: none;
+  }
+}
+
+/* The drawer reuses the cart page's `CartItem`, whose `md:flex` row puts the
+   quantity / total / delete controls beside the info column. In a 437px drawer
+   that squeezes the product name to a word per line, so stack the controls
+   under the info instead (the Twig side cart is also a compact two-row item). */
+.tallah-sidecart__items {
+  .cart-item {
+    @apply mb-4 pb-4;
+
+    > div {
+      @apply block;
+
+      > * {
+        margin-inline: 0 !important;
+      }
+    }
+
+    .cart-item__controls {
+      @apply mt-3 justify-between;
+    }
+  }
+}

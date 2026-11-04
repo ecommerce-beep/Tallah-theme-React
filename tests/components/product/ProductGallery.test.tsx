@@ -5,8 +5,9 @@ import { renderToString } from 'react-dom/server';
 import type { Product } from '@salla.sa/twilight-theme-engine/types';
 import { ProductGallery } from '../../../app/components/product/ProductGallery';
 
+const galleryState = vi.hoisted(() => ({ settings: {} as Record<string, unknown> }));
 vi.mock('@salla.sa/twilight-theme-engine/providers', () => ({
-  useTwilight: () => ({ theme: { settings: {} } }),
+  useTwilight: () => ({ theme: { settings: galleryState.settings } }),
 }));
 
 vi.mock('@salla.sa/twilight-theme-engine/i18n', () => ({
@@ -213,5 +214,62 @@ describe('ProductGallery in the Salla app', () => {
 
     expect(fireEvent.click(slides(container)[1])).toBe(false);
     expect(dispatch).toHaveBeenCalledWith('mobile::gallery.open', { images: legacyMedia });
+  });
+});
+
+describe('ProductGallery 3D models', () => {
+  const MODEL_SRC = 'https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js';
+  const withModel = {
+    ...product,
+    images: [
+      { id: 9, url: 'https://cdn.test/poster.webp', three_d_image_url: 'https://cdn.test/m.glb', type: 'image' },
+      ...(product.images ?? []),
+    ],
+  } as unknown as Product;
+  const scripts = () => document.head.querySelectorAll(`script[src="${MODEL_SRC}"]`);
+
+  beforeEach(() => {
+    document.head.querySelectorAll(`script[src="${MODEL_SRC}"]`).forEach((el) => el.remove());
+  });
+
+  it('loads <model-viewer> once for a product with a 3D image, as single.twig does', () => {
+    render(<ProductGallery product={withModel} />);
+    render(<ProductGallery product={withModel} />);
+    expect(scripts()).toHaveLength(1);
+    expect(scripts()[0].getAttribute('type')).toBe('module');
+  });
+
+  it('does not load it for a product without 3D images', () => {
+    render(<ProductGallery product={product} />);
+    expect(scripts()).toHaveLength(0);
+  });
+});
+
+describe('ProductGallery grid mode (grid_or_slider_products_page)', () => {
+  beforeEach(() => {
+    galleryState.settings = {};
+  });
+
+  it('is the thumbs slider only by default', () => {
+    const { container } = render(<ProductGallery product={product} />);
+    expect(container.querySelector('.tallah-gallery-grid')).toBeNull();
+  });
+
+  it('adds a two-column grid of the lightbox links, shown from lg when phones keep the slider', () => {
+    galleryState.settings = { grid_or_slider_products_page: true, grid_or_slider_in_mobile: true };
+    const { container } = render(<ProductGallery product={product} />);
+    const grid = container.querySelector('.tallah-gallery-grid') as HTMLElement;
+    expect(grid.className).toContain('hidden lg:grid');
+    expect(grid.querySelectorAll('a[data-fslightbox]')).toHaveLength(3);
+    // the slider wrapper is hidden from lg
+    expect(container.querySelector('[class~="lg:hidden"]')).toBeTruthy();
+  });
+
+  it('shows the grid on phones too when the slider is not kept for them', () => {
+    galleryState.settings = { grid_or_slider_products_page: true };
+    const { container } = render(<ProductGallery product={product} />);
+    const grid = container.querySelector('.tallah-gallery-grid') as HTMLElement;
+    expect(grid.className).not.toContain('hidden lg:grid');
+    expect(grid.className).toContain('grid-cols-2');
   });
 });
