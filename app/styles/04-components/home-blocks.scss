@@ -152,6 +152,10 @@
     @apply flex flex-col items-center justify-center h-full p-2.5
   }
 
+  &.square-photos {
+    background-size: var(--square-photo-size, contain) !important;
+  }
+
   &.square-photos h3 {
     @apply h-full px-3;
   }

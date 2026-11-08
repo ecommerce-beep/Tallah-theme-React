@@ -123,10 +123,19 @@ export function ProductTabs({
 }
 
 /** Extra image strip below the page (`image_collection` + `img_in_single`): a scroll-snap row, no slider library. */
-export function InspireGallery({ images, title }: { images: string[]; title: string }) {
+export function InspireGallery({
+  images,
+  title,
+  backgroundColor,
+}: {
+  images: string[];
+  title: string;
+  /** `bg_color_gellary` — single.twig's inline background; the stylesheet's grey stays when unset. */
+  backgroundColor?: string;
+}) {
   if (images.length === 0) return null;
   return (
-    <section className="tallah-inspire">
+    <section className="tallah-inspire" style={backgroundColor ? { backgroundColor } : undefined}>
       <h2 className="tallah-inspire__title">{title}</h2>
       <div className="tallah-inspire__track">
         {images.map((url, index) => (

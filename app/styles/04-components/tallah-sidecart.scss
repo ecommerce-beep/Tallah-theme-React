@@ -98,10 +98,8 @@
 .tallah-sidecart__footer {
   @apply mt-auto flex flex-col gap-5 border-t p-5;
 
-  /* clear the mobile bottom bar, which sits on top of the drawer (z-220) */
-  @media (max-width: 767px) {
-    padding-bottom: calc(76px + var(--safe-bottom));
-  }
+  /* the drawer ends at the screen edge: only the home-indicator inset is cleared */
+  padding-bottom: max(1.25rem, var(--safe-bottom));
 
   form {
     @apply border-b border-gray-200 pb-5;
@@ -190,24 +188,32 @@
   }
 }
 
-/* The drawer reuses the cart page's `CartItem`, whose `md:flex` row puts the
-   quantity / total / delete controls beside the info column. In a 437px drawer
-   that squeezes the product name to a word per line, so stack the controls
-   under the info instead (the Twig side cart is also a compact two-row item). */
+/* The drawer reuses the cart page's `CartItem`, whose `md:` row puts the controls column beside the
+   info. A drawer is narrow at any viewport width, so force the phone layout: controls under the info,
+   the mobile price copy, a compact image, and no white card around the row. */
 .tallah-sidecart__items {
   .cart-item {
-    @apply mb-4 pb-4;
+    @apply mb-4 rounded-none bg-transparent p-0 pb-4;
 
-    > div {
-      @apply block;
-
-      > * {
-        margin-inline: 0 !important;
-      }
+    .cart-item__row {
+      @apply flex-col space-x-0;
     }
 
     .cart-item__controls {
-      @apply mt-3 justify-between;
+      @apply mt-3 w-full flex-row-reverse items-center justify-between;
+    }
+
+    .cart-item__img {
+      width: 90px;
+      height: 110px;
+    }
+
+    .cart-item__price--mobile {
+      @apply flex;
+    }
+
+    .cart-item__price--desktop {
+      @apply hidden;
     }
   }
 }

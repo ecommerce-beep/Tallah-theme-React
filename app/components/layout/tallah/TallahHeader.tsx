@@ -283,7 +283,8 @@ export function TallahHeader({ navOpen: navOpenProp, onNavOpenChange }: TallahHe
     >
       <i className={`${cartIconClass} text-xl`} aria-hidden="true" />
       <span className="tallah-header__cart-count" data-testid="tallah-cart-count">
-        {sideCart.cart?.items?.length ?? 0}
+        {/* Salla's own cart count (total quantity), like the SDK summary and the mobile bar — not the number of lines */}
+        {sideCart.cart?.count ?? sideCart.cart?.items?.length ?? 0}
       </span>
     </button>
   ) : (

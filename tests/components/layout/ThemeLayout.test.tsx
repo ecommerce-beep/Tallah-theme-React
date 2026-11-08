@@ -25,12 +25,16 @@ vi.mock('../../../app/components/layout/tallah/TallahFooter', () => ({
   TallahFooter: () => <footer data-testid="tallah-footer" />,
 }));
 vi.mock('../../../app/components/layout/ImportantLinksSheet', () => ({
-  ImportantLinksSheet: () => null,
+  ImportantLinksSheet: () => (raedUi.links(), null),
 }));
 vi.mock('../../../app/components/layout/MobileAccountSheet', () => ({
-  MobileAccountSheet: () => null,
+  MobileAccountSheet: () => (raedUi.account(), null),
 }));
-vi.mock('../../../app/components/layout/MobileBottomBar', () => ({ MobileBottomBar: () => null }));
+// Spies: the original TALLAH has no bottom navigation and no account / important-links sheets, so the layout must never mount them.
+const raedUi = vi.hoisted(() => ({ bar: vi.fn(), account: vi.fn(), links: vi.fn() }));
+vi.mock('../../../app/components/layout/MobileBottomBar', () => ({
+  MobileBottomBar: () => (raedUi.bar(), null),
+}));
 
 /**
  * A `salla.lang` stand-in. `subscribe` keeps the listener, as the SDK does, so
@@ -71,6 +75,15 @@ describe('ThemeLayout header and footer', () => {
       layoutState.settings = {};
     }
   );
+});
+
+describe('ThemeLayout has no Raed-only UI', () => {
+  it('never mounts the mobile bottom bar or its account / important-links sheets', () => {
+    render(<ThemeLayout>page</ThemeLayout>);
+    expect(raedUi.bar).not.toHaveBeenCalled();
+    expect(raedUi.account).not.toHaveBeenCalled();
+    expect(raedUi.links).not.toHaveBeenCalled();
+  });
 });
 
 describe("ThemeLayout's component translations", () => {

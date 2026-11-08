@@ -1,25 +1,184 @@
 /*
-  Cart page — column-heading row above flat item rows.
+  Cart page — TALLAH `cart.twig`: grey page, white item cards, white summary card.
   Markup: app/components/cart/{CartPage,CartItem}.tsx
 */
-.cart-titles {
-  span span:first-child {
-    @apply w-[120px] text-center;
+.cart-page {
+  @apply px-4 md:px-10 pb-10;
+  background-color: #fafafa;
+
+  /* summary column is 419px in cart.twig (the engine's own box is w-96 = 384px): the aside owns the
+     width and the stickiness, the engine's box just fills it */
+  &__aside {
+    @apply w-full;
+  }
+
+  &__aside > .sticky {
+    position: static;
+    width: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    &__aside {
+      position: sticky;
+      top: 6rem;
+      margin-inline-start: 2rem;
+      width: 419px;
+    }
+
+    &__aside > .sticky {
+      margin-inline: 0;
+    }
+  }
+
+  /* sticky_cart_button: phones pin the checkout button above the bottom bar (cart.twig fixes it to the screen) */
+  @media (max-width: 767px) {
+    &--sticky-cta .cart-submit-wrap {
+      position: fixed;
+      inset-inline: 0;
+      margin-inline: 0;
+      bottom: var(--mobile-bottom-bar-clearance, 0px);
+      z-index: 40;
+      padding: 16px;
+      background: #fff;
+      border-top: 1px solid #e5e7eb;
+      box-shadow: 0 -4px 12px rgb(0 0 0 / 0.08);
+    }
+
+    &--sticky-cta .cart-submit-wrap #cart-submit {
+      width: 100%;
+    }
+
+    &--sticky-cta {
+      padding-bottom: 90px;
+    }
+  }
+}
+
+/* cart_page_features: a 3-column strip under the summary (cart.twig `grid grid-cols-3 gap-4 mt-5`) */
+.cart-features {
+  @apply mt-5 grid grid-cols-3 gap-4 p-0;
+  list-style: none;
+
+  &__item {
+    @apply flex flex-col items-center gap-2 text-center;
+  }
+
+  &__image {
+    @apply mb-3 h-8 w-8 object-contain;
+  }
+
+  &__text {
+    @apply w-full text-sm font-light leading-5 tracking-normal text-zinc-800;
+    overflow-wrap: break-word;
   }
 }
 
 .cart-item {
-  &__controls {
-    @apply md:justify-end;
+  @apply bg-white mb-5 rounded-md;
+  padding: 20px 10px;
+  border-bottom: 1px solid #acacac63;
+
+  @media (min-width: 480px) {
+    padding: 28px;
   }
 
-  /* line the stepper up under the "Quantity" heading (fixed 120px column) */
-  &__controls .s-quantity-input .s-quantity-input-container {
-    @apply w-[120px];
+  &__row {
+    @apply flex flex-col md:flex-row md:items-start md:justify-between rtl:space-x-reverse md:space-x-12;
+  }
+
+  &__main {
+    @apply flex flex-1 w-full gap-2 mb-3;
+  }
+
+  &__image {
+    @apply shrink-0;
+  }
+
+  &__img {
+    @apply flex-none object-center object-cover bg-gray-100 border border-gray-200;
+    width: 110px;
+    height: 195px;
+
+    @media (min-width: 768px) {
+      width: 120px;
+      height: 140px;
+    }
+  }
+
+  &__info {
+    @apply space-y-1 flex-grow basis-0 min-w-0 w-full;
+  }
+
+  &__name {
+    @apply mb-4 leading-5 md:leading-6 tracking-wide md:tracking-normal line-clamp-2;
+    color: var(--color-font);
+    font-size: 1rem;
+
+    a {
+      @apply text-base;
+    }
+  }
+
+  /* quantity · price · actions column */
+  &__controls {
+    @apply flex flex-row-reverse md:flex-col-reverse gap-3 items-center justify-between md:justify-end md:items-end;
+  }
+
+  &__actions {
+    @apply flex items-center;
+  }
+
+  &__price {
+    @apply flex-row-reverse items-center justify-end gap-1;
+
+    &--mobile {
+      @apply flex md:hidden;
+    }
+
+    &--desktop {
+      @apply hidden md:flex;
+    }
+  }
+
+  &__strike {
+    @apply line-through;
+    color: #9f9fa9;
+    font-weight: 500;
+    font-size: clamp(1rem, 0.95rem + 0.3vw, 1.125rem);
+    line-height: 2rem;
+
+    &.item-original-price {
+      @apply text-sm;
+    }
+  }
+
+  &__now {
+    @apply font-medium text-lg leading-8;
+    color: var(--color-font);
+
+    &--plain {
+      @apply text-sm text-gray-500;
+    }
+  }
+
+  &__promo {
+    @apply text-sm;
+    color: #be123c;
+  }
+
+  &__weight {
+    @apply text-sm text-gray-500;
+  }
+
+  &__total {
+    @apply flex-none font-bold text-sm;
+    color: #be123c;
   }
 
   &__delete {
-    @apply w-5;
+    @apply inline-flex items-center justify-center text-gray-500 transition-colors hover:text-red-600;
+    width: 25px;
+    height: 25px;
 
     &:disabled {
       @apply cursor-wait;
@@ -31,24 +190,98 @@
     @apply inline-block h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-500;
   }
 
-  /* per-item product options render inside the flat row — drop the wrapper's
-     card padding (mirrors the product page's `.product-form` treatment) */
+  /* wishlist heart: borderless 25px, red when added (cart.scss `.btn--wishlist`) */
+  .btn--wishlist {
+    @apply border-0;
+    width: 25px;
+    height: 25px;
+    color: var(--color-font);
+
+    &.is-added,
+    &.s-product-card-wishlist-added {
+      color: #e11d48;
+    }
+  }
+
+  /* quantity stepper as TALLAH's global.scss: square box, 1px primary border, transparent buttons,
+     no filled circles; "−" on the left of the number in both directions */
+  .s-quantity-input .s-quantity-input-container {
+    @apply h-10 justify-between gap-0 rounded-none bg-transparent p-0;
+    width: 137px;
+    border: 0.8px solid var(--color-primary);
+  }
+
+  [dir='ltr'] & .s-quantity-input .s-quantity-input-container {
+    flex-direction: row-reverse;
+  }
+
+  .s-quantity-input .s-quantity-input-button {
+    @apply rounded-none bg-transparent;
+
+    svg {
+      fill: var(--color-font);
+      color: var(--color-font);
+    }
+  }
+
+  .s-quantity-input .s-quantity-input-input {
+    @apply bg-transparent font-medium;
+    color: var(--color-primary);
+  }
+
+  /* per-item product options render inside the card — no wrapper chrome */
   .s-product-options-wrapper {
-    @apply p-0 rtl:lg:pr-[112px] ltr:lg:pl-[112px];
+    @apply p-0;
+    background-color: transparent;
+    border: 0;
     border-radius: 0;
     margin: 0;
+  }
+
+  .s-product-options-option {
+    @apply flex gap-2.5;
+  }
+
+  .s-product-options-option-label {
+    @apply font-semibold text-sm leading-5 tracking-normal;
+    color: var(--color-primary);
   }
 }
 
 /*
-  Sidebar cards (engine): the Order Summary box (`… transition-height`) and the
-  free-shipping progress box (`#free-shipping`) — flat and gray instead of the
-  default white drop-shadow card.
+  Sidebar cards (engine): the Order Summary box (`… transition-height`) stays the white shadow card of
+  cart.twig; the free-shipping box takes the primary tint, the gifting widget likewise.
 */
-#cart-gifting,
-.cart .shadow-default.transition-height,
-.cart #free-shipping {
-  @apply bg-gray-100 shadow-none rounded;
+.cart-page #free-shipping,
+#cart-gifting {
+  @apply rounded-md;
+  background-color: color-mix(in srgb, var(--color-primary) 5%, white);
+}
+
+.cart-page .shadow-default.transition-height {
+  input {
+    @apply bg-transparent;
+    min-height: 50px;
+    padding-block: 14px;
+    border: 1px solid #d6dddf;
+  }
+
+  .btn--coupon {
+    border-radius: 0;
+    min-height: 50px;
+  }
+
+  /* square, medium-weight checkout button (cart.scss `#cart-submit`) */
+  #cart-submit button {
+    @apply font-medium text-sm leading-5 tracking-wide text-center capitalize;
+    border-radius: 0;
+  }
+}
+
+.cart-page .s-payments-list-item {
+  @apply bg-transparent;
+  height: 50px;
+  width: 58px;
 }
 
 #cart-gifting .s-gifting-widget .s-list-tile-item{
@@ -59,16 +292,27 @@ salla-list-tile.s-gifting-widget .s-list-tile-item-content::before{
   @apply max-w-[100%];
 }
 
-/* Free-shipping progress track (engine default `bg-border-color`) — darken it so
-   it reads against the now-gray card behind it. The fill stays `bg-primary`. */
-.cart #free-shipping-bar {
-  @apply bg-gray-200;
-}
+/* Free-shipping box as cart.twig: text only (no round icon / title), 4px square gold bar on a #E4E4E7 track */
+.cart-page #free-shipping {
+  .rounded-icon,
+  h4 {
+    display: none;
+  }
 
-/* Coupon field — match the 16px button roundness (`.s-button-btn`), not the
-   6px `.form-input` default. */
-#coupon-input {
-  @apply rounded;
+  #free-shipping-bar {
+    @apply mt-2 overflow-hidden rounded-none;
+    height: 4px;
+    background-color: #e4e4e7;
+
+    .progress-bg {
+      @apply h-full rounded-none;
+      background-color: #c5992c;
+
+      i {
+        display: none;
+      }
+    }
+  }
 }
 
 /* Cart loading placeholder (`CartSkeleton`, styled by the Salla tailwind

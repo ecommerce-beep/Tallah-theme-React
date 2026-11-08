@@ -22,7 +22,7 @@ import { product, parseNextPageToken } from '@salla.sa/twilight-theme-engine/api
 import type { ProductListLoaderData } from '@salla.sa/twilight-theme-engine/routes/product-listing';
 import type { Product } from '@salla.sa/twilight-theme-engine/types';
 import { TallahProductCard } from './TallahProductCard';
-import { useAppliedFilters } from '@salla.sa/twilight-theme-engine/routes/product-listing';
+import { useAppliedFilters, parseFiltersFromSearch } from '@salla.sa/twilight-theme-engine/routes/product-listing';
 import type { ProductListFilters } from '@salla.sa/twilight-theme-engine/api/product';
 import { BlockHookSlot, BottomSheet } from '../common';
 import { FilterHorizontalIcon } from '../icons';
@@ -455,6 +455,27 @@ export function ProductListPage({
     const handleFiltersChanged = () => setFiltersOpen(false);
     return onSallaEvent('salla-filters::changed', handleFiltersChanged);
   }, []);
+
+  // `<salla-filters>` writes the selection to the address bar with `history.pushState`, which the router never
+  // sees: on Back / Forward the URL changed but the applied selection (and the widgets' checked state) stayed on
+  // the previous one. Re-derive both from the URL after the browser has restored it.
+  useEffect(() => {
+    if (!showFilters) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onPopState = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const restored = parseFiltersFromSearch(window.location.search);
+        (window as unknown as { salla?: { event?: { dispatch?: (name: string, ...args: unknown[]) => void } } }).salla?.event?.dispatch?.('salla-filters::changed', restored ?? {});
+        setFiltersKey((k) => k + 1);
+      }, 0);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, [showFilters]);
 
   const handleSortChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {

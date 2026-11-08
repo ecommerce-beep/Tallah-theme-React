@@ -4,6 +4,8 @@ import { useTranslation } from '@salla.sa/twilight-theme-engine/i18n';
 import { useMoney } from '@salla.sa/twilight-theme-engine/hooks/useMoney';
 import { Link, Image } from '@salla.sa/twilight-theme-engine/common';
 import { SallaCartItemOffers } from '@salla.sa/twilight-components-react/cart-item-offers';
+import { useWishlist } from '@salla.sa/twilight-theme-engine/hooks/useWishlist';
+import { WishlistHeartButton } from '../product/WishlistHeartButton';
 import { Delete01Icon, MinusIcon, PlusIcon } from '../icons';
 
 interface CartItemProps {
@@ -130,49 +132,52 @@ function CartQuantity({
   );
 }
 
-/** Name + price/offer badges + weight — the left column's text block. */
-function CartItemInfo({ item }: { item: CartItemType }) {
+/**
+ * Regular / original / current price of a row, as `cart.twig`: the pre-offer price struck through, the
+ * original price struck through when the product is on sale, then the price to pay. Shown twice (under the name on
+ * phones, in the controls column from `md`), so each copy gets its own wrapper class.
+ */
+function CartItemPrice({ item, className }: { item: CartItemType; className: string }) {
   const { t } = useTranslation();
   const { format } = useMoney();
+  // The cart API nests the product under the row, but the engine type doesn't declare it.
+  const promotionTitle = (item as { product?: { promotion_title?: string } }).product?.promotion_title;
 
   return (
-    <div className="space-y-1">
-      <div className="text-gray-900 leading-6 text-lg font-bold">
-        <Link to={item.url} className="text-base">
-          {item.product_name}
-        </Link>
-      </div>
-
-      <div className="flex items-center gap-2 flex-wrap">
-        {item.offer && (
-          <span className="text-sm text-gray-500 line-through item-regular-price">
-            {format(toNumber(item.product_price), {
-              currency: moneyCurrency(item.product_price),
-            })}
-          </span>
-        )}
-
-        {item.is_on_sale && (
-          <span className="inline-flex gap-1 leading-4 text-sm text-gray-500 line-through item-original-price">
-            {format(toNumber(item.original_price), {
-              currency: moneyCurrency(item.original_price),
-            })}
-          </span>
-        )}
-
-        <span
-          className={`inline-flex gap-1 leading-4 item-price ${item.has_discount ? 'text-red-800' : 'text-sm text-gray-500'}`}
-        >
-          {format(toNumber(item.price), { currency: moneyCurrency(item.price) })}
+    <div className={`cart-item__price ${className}`}>
+      {item.offer && (
+        <span className="item-regular-price cart-item__strike">
+          {format(toNumber(item.product_price), { currency: moneyCurrency(item.product_price) })}
         </span>
-      </div>
+      )}
+
+      {item.is_on_sale && (
+        <span className="item-original-price cart-item__strike">
+          {format(toNumber(item.original_price), { currency: moneyCurrency(item.original_price) })}
+        </span>
+      )}
+
+      <span className={`item-price cart-item__now${item.has_discount ? '' : ' cart-item__now--plain'}`}>
+        {format(toNumber(item.price), { currency: moneyCurrency(item.price) })}
+      </span>
+
+      {promotionTitle && (
+        <span className="cart-item__promo">{promotionTitle}</span>
+      )}
 
       {item.weight_label && (
-        <p className="text-sm text-gray-500">
+        <p className="cart-item__weight">
           {t('pages.products.weight')}: <span>{item.weight_label}</span>
         </p>
       )}
+    </div>
+  );
+}
 
+/** The offers a row earned: the older single-line one, or the detailed list. */
+function CartItemOffers({ item }: { item: CartItemType }) {
+  return (
+    <>
       {item.offer && !item.detailed_offers?.length && (
         <span className="old-offers flex items-center gap-1 mx-1.5">
           <i className="sicon-discount-calculator text-gray-500 offer-icon"></i>
@@ -188,7 +193,7 @@ function CartItemInfo({ item }: { item: CartItemType }) {
           offers={JSON.stringify(item.detailed_offers)}
         />
       )}
-    </div>
+    </>
   );
 }
 
@@ -244,6 +249,22 @@ function cartItemTotalLabel(
         currency: moneyCurrency(item.total_special_price),
       })
     : format(toNumber(item.total), { currency: moneyCurrency(item.total) });
+}
+
+/** Heart toggle on the row (cart.twig's `btn--wishlist`), synced with the shared wishlist state. */
+function CartItemWishlist({ productId }: { productId: number }) {
+  const { t } = useTranslation();
+  const wishlist = useWishlist();
+  const inWishlist = wishlist.has(productId);
+
+  return (
+    <WishlistHeartButton
+      productId={productId}
+      ariaLabel={t('pages.wishlist.toggle', 'Add or remove to wishlist')}
+      className={`btn--wishlist s-product-card-wishlist-btn animated ${inWishlist ? 's-product-card-wishlist-added is-added' : 'not-added un-favorited'}`}
+      onClick={() => wishlist.toggle(productId)}
+    />
+  );
 }
 
 export function CartItem({ item, isFirst = false, onMutated }: CartItemProps) {
@@ -305,17 +326,16 @@ export function CartItem({ item, isFirst = false, onMutated }: CartItemProps) {
 
   return (
     <form ref={formRef} onChange={handleChange} id={`item-${item.id}`}>
-      <section className="cart-item relative border-b border-gray-200 pb-6 mb-6">
+      <section className="cart-item relative">
         <input type="hidden" name="id" value={item.id} />
 
-        <div className="md:flex rtl:space-x-reverse md:space-x-12 items-start justify-between mb-4 last:mb-0">
-          <div className="flex flex-1 rtl:space-x-reverse space-x-4">
-            <Link to={item.url} className="relative overflow-hidden shrink-0">
+        <div className="cart-item__row">
+          <div className="cart-item__main">
+            <Link to={item.url} className="cart-item__image relative overflow-hidden shrink-0">
               <Image
                 src={item.product_image}
                 alt={item.product_name}
-                className="flex-none w-24 h-20 object-center object-cover"
-                aspectRatio="6/5"
+                className="cart-item__img"
                 priority={isFirst}
               />
 
@@ -326,32 +346,45 @@ export function CartItem({ item, isFirst = false, onMutated }: CartItemProps) {
               )}
             </Link>
 
-            <CartItemInfo item={item} />
+            <div className="cart-item__info">
+              <h2 className="cart-item__name">
+                <Link to={item.url}>{item.product_name}</Link>
+              </h2>
+
+              {/* phones: the price sits under the name; from `md` it moves to the controls column */}
+              <CartItemPrice item={item} className="cart-item__price--mobile" />
+            </div>
           </div>
 
-          <div className="cart-item__controls mt-5 md:mt-0 flex gap-6 md:gap-8 justify-between items-center md:items-start">
+          <div className="cart-item__controls">
+            <span className="cart-item__actions">
+              <button
+                type="button"
+                className="cart-item__delete"
+                aria-label={t('common.elements.remove', 'Remove from the cart')}
+                aria-busy={deleting}
+                disabled={deleting}
+                onClick={handleDelete}
+              >
+                {deleting ? (
+                  <span className="cart-item__delete-spinner" aria-hidden="true" />
+                ) : (
+                  <Delete01Icon aria-hidden="true" className="h-5 w-5" />
+                )}
+              </button>
+              <CartItemWishlist productId={item.product_id} />
+            </span>
+
             <CartItemQuantity item={item} disabled={deleting} onChange={changeQuantity} />
 
-            <p className="flex-none font-bold">
-              {/* label shows on mobile only — desktop has the column heading */}
-              <span className="md:hidden">{t('blocks.cart.item_total', 'Total')}: </span>
-              <span className="inline-block item-total">{cartItemTotalLabel(item, format, t)}</span>
-            </p>
+            <CartItemPrice item={item} className="cart-item__price--desktop" />
 
-            <button
-              type="button"
-              className="cart-item__delete shrink-0 text-gray-400 transition-colors hover:text-red-600"
-              aria-label={t('common.elements.remove', 'Remove from the cart')}
-              aria-busy={deleting}
-              disabled={deleting}
-              onClick={handleDelete}
-            >
-              {deleting ? (
-                <span className="cart-item__delete-spinner" aria-hidden="true" />
-              ) : (
-                <Delete01Icon aria-hidden="true" className="h-5 w-5" />
-              )}
-            </button>
+            {/* Twig keeps this line `hidden` but fills it; the out-of-stock label shows through it */}
+            {!item.is_available && (
+              <p className="cart-item__total">
+                <span className="inline-block item-total">{cartItemTotalLabel(item, format, t)}</span>
+              </p>
+            )}
           </div>
         </div>
 
@@ -367,6 +400,8 @@ export function CartItem({ item, isFirst = false, onMutated }: CartItemProps) {
             product-id={item.product_id}
           />
         )}
+
+        <CartItemOffers item={item} />
       </section>
     </form>
   );

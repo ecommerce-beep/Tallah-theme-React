@@ -275,6 +275,13 @@ describe('TallahHeader', () => {
       expect(sideCart.setOpen).toHaveBeenCalledWith(true);
     });
 
+    it('shows the cart quantity count, not the number of lines', () => {
+      state.settings = on;
+      sideCart.cart = { items: [{}, {}], count: 7 };
+      const { getByTestId } = render(<TallahHeader />);
+      expect(getByTestId('tallah-cart-count').textContent).toBe('7');
+    });
+
     it('needs both switches', () => {
       state.settings = { enable_side_cart: true, cart_display_type: 'page' };
       expect(render(<TallahHeader />).container.querySelector('.tallah-header__cart')).toBeNull();

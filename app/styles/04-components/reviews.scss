@@ -41,30 +41,41 @@
     @apply mt-3;
   }
 
+  /* ---- stacked layout (< lg): rating summary first, then form, then comments */
+  @media (max-width: 1023.98px) {
+    .s-comments-container {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .s-comments-container > salla-reviews-summary {
+      order: -1;
+      margin-bottom: 1.5rem;
+    }
+  }
+
   /* ---- two-column layout (desktop) ----------------------------------- */
   @media (min-width: 1024px) {
+    /* Physical columns, the same in RTL and LTR: the rating summary and the
+       review form float to the RIGHT half; the title, count/sort header and the
+       list sit in the LEFT half (margin-right clears the right half). */
     .s-comments-container {
-      display: grid;
-      /* two equal halves — list track first (inline-start), summary last */
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      column-gap: clamp(2rem, 4vw, 4rem);
-      align-items: start;
+      --rev-gap: clamp(2rem, 4vw, 4rem);
+      display: flow-root;
     }
 
-    /* the title, form, list, header and translate toggle all stack in the wide
-       track … */
     .s-comments-container > * {
-      grid-column: 1;
       min-width: 0;
+      margin-right: calc(50% + var(--rev-gap) / 2);
     }
 
-    /* … and the summary is the sticky rail on the inline-end side, spanning the
-       full height alongside them. */
-    .s-comments-container > salla-reviews-summary {
-      grid-column: 2;
-      grid-row: 1 / span 999;
-      position: sticky;
-      top: 5rem;
+    .s-comments-container > salla-reviews-summary,
+    .s-comments-container > salla-comment-form {
+      display: block;
+      float: right;
+      clear: right;
+      width: calc(50% - var(--rev-gap) / 2);
+      margin-right: 0;
     }
   }
 

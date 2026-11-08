@@ -221,6 +221,32 @@
   @apply h-auto max-h-12 w-auto max-w-[100px] object-contain xs:max-w-[170px];
 }
 
+/* The engine `Image` adds `object-cover`; a logo must never be cropped or stretched (header.twig: `object-contain`). */
+.tallah-header .tallah-header__logo {
+  object-fit: contain;
+}
+
+/* --- account avatar (header.scss `salla-user-menu` / `.s-user-menu-trigger`) -------------------------
+   The Twig theme strips the web component's own padding and gives the avatar 28px (`p-0 rounded-sm`, `h-7 w-7`).
+   Without it the trigger kept its default padded white box and a larger image. */
+.tallah-header salla-user-menu {
+  @apply shrink-0;
+}
+
+.tallah-header .s-user-menu-trigger {
+  @apply rounded-sm bg-transparent p-0;
+  min-width: 0;
+  min-height: 0;
+  line-height: 0;
+}
+
+.tallah-header .s-user-menu-trigger img,
+.tallah-header .s-user-menu-trigger-avatar {
+  @apply h-7 w-7 rounded-sm bg-transparent p-0;
+  max-width: none;
+  object-fit: cover;
+}
+
 .tallah-header.is-pinned .tallah-header__logo {
   max-height: 40px;
 }

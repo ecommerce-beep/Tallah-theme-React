@@ -354,25 +354,13 @@ salla-gifting {
 /* Add to cart sticky bar */
 @media (max-width: 640px) {
   .is-sticky-product-bar {
-    /* clear the sticky add-to-cart bar, which sits above the mobile bottom nav
-       (see `mobile-bottom-bar.scss`). More specific than that file's generic
-       `.app-inner` rule so it wins here.
-       190px = nav (52 content + 12 own gap) + 10 breathing room + this bar's own height. */
-    &.product-single .app-inner {
-      padding-bottom: calc(190px + var(--flow-safe-bottom));
+    /* the original TALLAH reserves 7rem (`pb-28`) for the sticky add-to-cart bar */
+    &.product-single {
+      @apply pb-28;
     }
 
     .sticky-product-bar {
-      @apply flex flex-wrap flex-col gap-2.5 sm:gap-4 fixed z-[2] bottom-0 p-3 justify-between items-center shadow-[-1px_-2px_9px_0_rgba(0,0,0,0.05)] transition duration-700 delay-500 translate-y-100 opacity-0 ease-elastic;
-      /* Floats inset from the screen edges, matching the bottom nav's own
-         rounded pill (mobile-bottom-bar.scss) rather than running flush edge
-         to edge. */
-      left: 16px;
-      right: 16px;
-      width: auto;
-      @apply rounded;
-      /* nav (52 content + 12 own gap) + 10 breathing room above it */
-      bottom: calc(70px + var(--safe-bottom));
+      @apply flex flex-wrap flex-col gap-2.5 sm:gap-4 fixed z-[2] bottom-0 left-0 p-3 w-full justify-between items-center shadow-[-1px_-2px_9px_0_rgba(0,0,0,0.05)] transition duration-700 delay-500 translate-y-100 opacity-0 ease-elastic;
 
       &__quantity,
       salla-add-product-button {

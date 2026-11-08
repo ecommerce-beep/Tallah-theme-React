@@ -7,9 +7,7 @@ import { useTranslation } from '@salla.sa/twilight-theme-engine/i18n';
 import { useUser } from '@salla.sa/twilight-theme-engine/hooks/useUser';
 import { TallahHeader } from './tallah/TallahHeader';
 import { TallahFooter } from './tallah/TallahFooter';
-import { ImportantLinksSheet } from './ImportantLinksSheet';
-import { MobileAccountSheet } from './MobileAccountSheet';
-import { MobileBottomBar } from './MobileBottomBar';
+import { dropdownSetting } from '../../lib/localizedSetting';
 import { fillComponentTranslations, type ComponentLang } from '../../lib/componentTranslations';
 
 /**
@@ -119,22 +117,12 @@ export function ThemeLayout({ children }: ThemeLayoutProps) {
   // Owned here so the header's nav drawer and the mobile bottom bar's Categories
   // tab drive the same slide-in panel.
   const [navOpen, setNavOpen] = useState(false);
-  // The mobile bottom bar's My Account tab opens this sheet (the customer's
-  // links, settings, contacts and the footer widgets, which the page footer
-  // doesn't show on mobile).
-  const [accountOpen, setAccountOpen] = useState(false);
-  // Its own "Important links" row opens this one in turn -- a second
-  // full-screen sheet for the footer menu, not a drill-in within the first.
-  const [importantLinksOpen, setImportantLinksOpen] = useState(false);
-
   // Close every sheet/drawer on any route change — a bottom-bar tab (Home,
   // Cart) or a link inside one of them navigates without touching their own
   // state, so they would otherwise stay open over the new page.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => {
     setNavOpen(false);
-    setAccountOpen(false);
-    setImportantLinksOpen(false);
   }, [pathname]);
 
   // Fill the web components' strings the store's pack lacks from the theme's
@@ -154,6 +142,9 @@ export function ThemeLayout({ children }: ThemeLayoutProps) {
   const tokens = {
     '--color-background': (theme?.settings as { bg_color?: string } | undefined)?.bg_color || '#F4F4F5',
     '--color-font': (theme?.settings as { text_color?: string } | undefined)?.text_color || '#18181B',
+    // `squar_photo_bg_image_size`: how the square-photos block fits its images (square-photos.twig defaults to contain).
+    '--square-photo-size':
+      dropdownSetting(theme?.settings?.squar_photo_bg_image_size) === 'cover' ? 'cover' : 'contain',
   } as CSSProperties;
 
   return (
@@ -170,27 +161,7 @@ export function ThemeLayout({ children }: ThemeLayoutProps) {
         <Suspense fallback={null}>
           <TallahFooter />
         </Suspense>
-        <MobileBottomBar
-          navOpen={navOpen}
-          onOpenNav={() => setNavOpen(true)}
-          onCloseNav={() => setNavOpen(false)}
-          accountOpen={accountOpen}
-          onAccountOpenChange={setAccountOpen}
-          secondSheetOpen={importantLinksOpen}
-          onCloseSecondSheet={() => setImportantLinksOpen(false)}
-        />
       </div>
-
-      <MobileAccountSheet
-        open={accountOpen}
-        onClose={() => setAccountOpen(false)}
-        onOpenImportantLinks={() => {
-          setAccountOpen(false);
-          setImportantLinksOpen(true);
-        }}
-      />
-
-      <ImportantLinksSheet open={importantLinksOpen} onClose={() => setImportantLinksOpen(false)} />
 
       <GlobalModals />
     </>

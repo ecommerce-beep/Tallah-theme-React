@@ -314,12 +314,15 @@ function StickyProductBar({
   hasPreorder: boolean;
 }) {
   const { t } = useTranslation();
-  const { store } = useTwilight();
+  const { store, theme } = useTwilight();
   // The storefront API doesn't send `can_quick_buy` for a product, so gating on it
   // alone never shows the buy-now (+ Apple Pay) widget. Fall back to the store's
   // quick-purchase setting; the button itself still checks status, product type
   // and the wallet's availability before it renders anything.
-  const quickBuy = product.can_quick_buy ?? !!store?.settings?.buy_now;
+  // `checkout_enable` (single.twig's switch for the buy-now row, on by default) can hide it per theme.
+  const checkoutEnabled =
+    (theme?.settings as Record<string, unknown> | undefined)?.checkout_enable !== false;
+  const quickBuy = checkoutEnabled && (product.can_quick_buy ?? !!store?.settings?.buy_now);
   // The loaded component copies host attributes (not properties) onto its inner salla-button.
   const addButtonRef = useCallback((el: HTMLElement | null) => {
     el?.setAttribute('width', 'wide');

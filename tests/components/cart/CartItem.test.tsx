@@ -35,8 +35,9 @@ const item = {
 describe('CartItem weight', () => {
   it("labels the weight with Twig's pages.products.weight key", () => {
     render(<CartItem item={item} />);
-    expect(screen.getByText(/pages\.products\.weight/)).toBeTruthy();
-    expect(screen.getByText('2 kg')).toBeTruthy();
+    // shown twice, as in cart.twig: under the name on phones, in the controls column from `md`
+    expect(screen.getAllByText(/pages\.products\.weight/)).toHaveLength(2);
+    expect(screen.getAllByText('2 kg')).toHaveLength(2);
   });
 });
 

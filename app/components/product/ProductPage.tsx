@@ -1,3 +1,4 @@
+import { ProductPromoPopups } from './ProductPromoPopups';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { SallaQuickOrder } from '@salla.sa/twilight-components-react/quick-order';
 import { SallaOffer } from '@salla.sa/twilight-components-react/offer';
@@ -140,7 +141,8 @@ export function ProductPage({ product: initialProduct, page }: ProductPageProps)
   const related = relatedSource(settings);
   const side = sideSource(settings);
   const inspireImages = useMemo(() => {
-    if (settings.img_in_single !== true) return [];
+    // default on (twilight.json): only an explicit off hides the strip
+    if (settings.img_in_single === false) return [];
     const items = Array.isArray(settings.image_collection) ? settings.image_collection : [];
     return items
       .map((item) => {
@@ -149,6 +151,11 @@ export function ProductPage({ product: initialProduct, page }: ProductPageProps)
       })
       .filter(Boolean);
   }, [settings, locale]);
+  // `bg_gellary` switches the extra gallery's own colour on; `bg_color_gellary` is that colour.
+  const inspireBackground =
+    settings.bg_gellary === false || typeof settings.bg_color_gellary !== 'string'
+      ? undefined
+      : settings.bg_color_gellary || undefined;
   // `sticky_is_true` (default on) + design `pro1` (the only one ported; `pro2` was a floating card).
   const stickyBar =
     settings.sticky_is_true !== false &&
@@ -292,9 +299,12 @@ export function ProductPage({ product: initialProduct, page }: ProductPageProps)
         <InspireGallery
           images={inspireImages}
           title={t('pages.single.inspire', 'Style inspiration')}
+          backgroundColor={inspireBackground}
         />
 
         {stickyBar && <StickyBuyBar product={product} />}
+
+        <ProductPromoPopups product={product} settings={settings} />
       </div>
 
       <HookSlot name="product:end" />
