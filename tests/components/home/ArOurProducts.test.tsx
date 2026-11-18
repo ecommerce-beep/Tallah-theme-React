@@ -29,10 +29,6 @@ vi.mock('@salla.sa/twilight-theme-engine/common', () => ({
   ),
 }));
 
-vi.mock('@salla.sa/twilight-components-react', () => ({
-  ProductsListSkeleton: () => <div data-testid="list-skeleton" />,
-}));
-
 vi.mock('../../../app/components/product', () => ({
   TallahProductCard: ({ product }: { product: { name?: string } }) => <div data-testid="product-card">{product.name}</div>,
 }));
@@ -95,6 +91,13 @@ describe('ArOurProducts', () => {
     expect(container.querySelector('h2')).toBeTruthy();
   });
 
+  it('shows the link text without a link when the merchant set no destination', () => {
+    const { container } = renderWithClient(<ArOurProducts data={{ ...base, rh_cat_btn_url: '' }} />);
+    expect(container.querySelector('a.cat-link')).toBeNull();
+    expect(container.querySelector('a[href="#"]')).toBeNull();
+    expect(container.querySelector('span.cat-link')?.textContent).toBe('عرض كل المنتجات');
+  });
+
   it('leaves out the heading parts the merchant left empty', () => {
     const { container } = renderWithClient(
       <ArOurProducts data={{ ...base, section_sub_title: '', link_title: '' }} />
@@ -109,5 +112,29 @@ describe('ArOurProducts', () => {
       <ArOurProducts data={{ ...base, section_title: { ar: 'عنوان', en: 'Title' } }} />
     );
     expect(container.querySelector('h2')?.textContent).toBe('Title');
+  });
+
+  it('shows a placeholder shaped like the grid (one per product) until the products arrive, then swaps it', async () => {
+    let release!: (value: unknown) => void;
+    listMock.mockReturnValue(new Promise((resolve) => (release = resolve)));
+    const { container, findAllByTestId } = renderWithClient(<ArOurProducts data={base} />);
+
+    const placeholder = container.querySelector('.ar-our-products__grid[aria-hidden="true"]')!;
+    expect(placeholder.children).toHaveLength(8);
+
+    release({ items: [{ id: 1, name: 'P1' }] });
+    expect(await findAllByTestId('product-card')).toHaveLength(1);
+    expect(container.querySelector('[aria-hidden="true"].ar-our-products__grid')).toBeNull();
+  });
+
+  it('keeps the heading and an empty grid when the request fails', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    listMock.mockRejectedValue(new Error('429'));
+    const { container } = renderWithClient(<ArOurProducts data={base} />);
+
+    await waitFor(() => expect(container.querySelector('[aria-hidden]')).toBeNull());
+    expect(container.querySelector('h2')).toBeTruthy();
+    expect(container.querySelector('.ar-our-products__grid')?.children).toHaveLength(0);
+    error.mockRestore();
   });
 });

@@ -6,7 +6,9 @@ import { useTranslation } from '@salla.sa/twilight-theme-engine/i18n';
 import { ProductsListSkeleton } from '@salla.sa/twilight-components-react';
 import { TallahProductCard } from '../product';
 import { ChevronDownIcon } from '../icons';
+import { useCarouselEdges } from '../../hooks/useCarouselEdges';
 import { useDragScroll } from '../../hooks/useDragScroll';
+import { slideStep } from '../../lib/carouselScroll';
 import { forwardSign } from '../../lib/scrollDirection';
 import { colorVar, resolveArProducts } from '../../lib/arBlock';
 import { dropdownSetting, imageSetting, linkSetting, localizedSetting } from '../../lib/localizedSetting';
@@ -26,12 +28,6 @@ export interface ArProductsBannerProps {
     [key: string]: unknown;
   };
 }
-
-const GAP = 20;
-
-/** One slide and the gap after it. */
-const stepOf = (track: HTMLElement) =>
-  ((track.firstElementChild as HTMLElement | null)?.offsetWidth ?? track.clientWidth / 2) + GAP;
 
 /** The Twig's `sicon-caret-*` glyph; the icon font this store loads may not carry it, so it is an SVG. */
 function Caret({ right }: { right: boolean }) {
@@ -71,11 +67,14 @@ export const ArProductsBanner = memo(function ArProductsBanner({ data }: ArProdu
   });
   const items = result?.items ?? [];
   const single = items.length === 1;
+  const edges = useCarouselEdges(track, items.length);
+  // No arrows when the products fit the row (they could not move it).
+  const showArrows = !single && items.length > 0 && edges.scrollable;
 
   /** `1` forward / `-1` back, whichever way the row reads. */
   const step = (dir: 1 | -1) => {
     const el = track.current;
-    if (el) el.scrollBy({ left: dir * forwardSign(el) * stepOf(el), behavior: 'smooth' });
+    if (el) el.scrollBy({ left: dir * forwardSign(el) * slideStep(el, el.clientWidth / 2), behavior: 'smooth' });
   };
 
   const prevLabel = t('blocks.home.reviews_prev', 'Previous');
@@ -91,6 +90,7 @@ export const ArProductsBanner = memo(function ArProductsBanner({ data }: ArProdu
         type="button"
         className="ar-products__arrow shadow-lg"
         aria-label={advances ? nextLabel : prevLabel}
+        disabled={advances ? edges.atEnd : edges.atStart}
         onClick={() => step(advances ? 1 : -1)}
       >
         <Caret right={pointsRight} />
@@ -104,6 +104,7 @@ export const ArProductsBanner = memo(function ArProductsBanner({ data }: ArProdu
       type="button"
       className="ar-products__arrow ar-products__arrow--top"
       aria-label={dir === 1 ? nextLabel : prevLabel}
+      disabled={dir === 1 ? edges.atEnd : edges.atStart}
       onClick={() => step(dir)}
     >
       <Caret right={(dir === 1) !== rtl} />
@@ -118,9 +119,9 @@ export const ArProductsBanner = memo(function ArProductsBanner({ data }: ArProdu
       className={`Ar-products-banner Ar-products-banner-${position}${single ? ' single-product' : ''}`}
       suppressHydrationWarning
     >
-      <div className="grid grid-cols-1 py-8 lg:grid-cols-3 lg:px-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 lg:px-4">
         <div className="order-3 mx-auto self-center lg:order-1 lg:col-span-2 lg:mx-0">
-          <div className="features-products-head text text-font mb-4 hidden text-center md:mb-6 lg:block">
+          <div className="features-products-head text text-font mb-4 text-center max-lg:hidden md:mb-6">
             {title && (
               <h2 className="pb-1 text-xl font-semibold" style={headingColor}>
                 {title}
@@ -138,14 +139,14 @@ export const ArProductsBanner = memo(function ArProductsBanner({ data }: ArProdu
           </div>
 
           <div className="relative lg:mx-10 xl:mx-28">
-            {!single && items.length > 0 && (
+            {showArrows && (
               <div className="absolute -top-4 z-2 flex h-fit max-w-fit -translate-y-full items-center justify-between gap-2 lg:hidden rtl:right-0 ltr:left-0">
                 {topArrow(-1)}
                 {topArrow(1)}
               </div>
             )}
 
-            <div className="relative mx-auto w-full max-w-[90vw] sm:max-w-[480px] lg:mt-0 lg:max-w-full lg:px-[56px] xl:max-w-[97.4%]">
+            <div className="relative mx-auto -mt-[80px] w-full max-w-[90vw] sm:max-w-[480px] lg:mt-0 lg:max-w-full lg:px-[56px] xl:max-w-[97.4%]">
               {query && !isSuccess ? (
                 <ProductsListSkeleton />
               ) : (
@@ -162,8 +163,10 @@ export const ArProductsBanner = memo(function ArProductsBanner({ data }: ArProdu
                 </div>
               )}
 
-              {!single && items.length > 0 && (
-                <div className="absolute left-0 top-[45%] mx-auto hidden h-fit w-full items-center justify-between gap-2 lg:flex">
+              {showArrows && (
+                // Spans the row so the arrows sit at its edges, so it must not catch the pointer
+                // itself: only the buttons do, and the cards under the gap stay clickable / draggable.
+                <div className="pointer-events-none absolute left-0 top-[45%] z-2 mx-auto flex h-fit w-full items-center justify-between gap-2 max-lg:hidden">
                   {edgeArrow('start')}
                   {edgeArrow('end')}
                 </div>
@@ -172,7 +175,7 @@ export const ArProductsBanner = memo(function ArProductsBanner({ data }: ArProdu
           </div>
         </div>
 
-        <div className="features-products-head text text-font order-1 mb-4 block text-center md:mb-6 lg:hidden">
+        <div className="features-products-head text text-font order-1 mb-4 text-center md:mb-6 lg:hidden">
           {linkText && (
             <Link to={href || '#'} className="pb-1 text-xl font-semibold underline" style={linkColor}>
               {linkText}
@@ -192,7 +195,7 @@ export const ArProductsBanner = memo(function ArProductsBanner({ data }: ArProdu
           {linkText && (
             <Link
               to={href || '#'}
-              className="absolute bottom-4 hidden text-sm font-semibold underline md:block rtl:right-4 ltr:left-4"
+              className="absolute bottom-4 text-sm font-semibold underline max-md:hidden rtl:right-4 ltr:left-4"
               style={{ color: 'var(--color-background)' }}
             >
               {linkText}

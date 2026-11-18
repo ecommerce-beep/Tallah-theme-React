@@ -106,11 +106,10 @@ describe('ProductPage (TALLAH single.twig)', () => {
     expect(screen.queryByTestId('crumbs')).toBeNull();
   });
 
-  it('has no reviews tab when the store has product ratings off', () => {
+  it('keeps the reviews tab even when the store has product ratings off, as single.twig (its condition is commented out)', () => {
     state.storeSettings = { rating: { show_on_product: false } };
     render(<ProductPage product={product} page={page} />);
-    expect(screen.getAllByRole('tab')).toHaveLength(1);
-    expect(screen.queryByTestId('comments')).toBeNull();
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
   });
 
   it('reads the similar products from the single_* settings, and hides them when switched off', () => {

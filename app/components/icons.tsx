@@ -349,3 +349,19 @@ export const CrownIcon = (props: SVGProps<SVGSVGElement>) => (
     <path d="M5 21H19" {...stroke} />
   </svg>
 );
+
+/** Two product columns: two tall cards side by side (the listing's grid view). */
+export const ViewGridIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...props}>
+    <rect x="3.5" y="3.5" width="7" height="17" rx="1.5" {...stroke} />
+    <rect x="13.5" y="3.5" width="7" height="17" rx="1.5" {...stroke} />
+  </svg>
+);
+
+/** One product column: a single wide card (the listing's list view). */
+export const ViewListIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...props}>
+    <rect x="3.5" y="3.5" width="17" height="17" rx="1.5" {...stroke} />
+    <path d="M3.5 14.5H20.5" {...stroke} />
+  </svg>
+);

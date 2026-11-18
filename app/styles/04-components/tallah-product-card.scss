@@ -12,7 +12,11 @@
   background-color: var(--color-background);
   border-radius: 0;
 
-  &:hover .flex-action {
+  /* Keyboard focus reveals the buttons as the mouse does: they sit above the image and are transparent until then,
+     so a focused one would otherwise be invisible. `:focus-visible` (not `:focus-within`) keeps a mouse click
+     inside the card from leaving them showing. */
+  &:hover .flex-action,
+  &:has(:focus-visible) .flex-action {
     top: 5px;
     opacity: 1;
   }
@@ -79,12 +83,24 @@
     transform: rotateY(180deg);
   }
 
-  /* The badge stays readable over the flip. */
+  /* The badge stays readable over the flip. As the Twig (`AR_product_card.scss`): a square label on the image's
+     physical top-left corner, in the page background with a fixed #C70036 text. */
   .s-product-card-promotion-title {
     position: absolute;
-    top: 10px;
-    inset-inline-start: 10px;
+    top: 0;
+    left: 0;
+    inset-inline-start: auto;
+    inset-inline-end: auto;
     z-index: 3;
+    max-width: calc(100% - 60px);
+    padding: 8px 10px;
+    border-radius: 0;
+    box-shadow: none;
+    background-color: var(--color-background);
+    color: #c70036;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
     transition: opacity 0.3s ease;
   }
 
@@ -145,7 +161,8 @@
     font-weight: 400;
     line-height: 24px;
     margin: 0;
-    color: var(--color-graytext, color-mix(in srgb, var(--color-font) 70%, transparent));
+    /* The Twig sets no title color (its `text-graytext` class has no rule): the title takes the card's text color. */
+    color: inherit;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -180,12 +197,16 @@
 
     h4 {
       font-size: clamp(1.096875rem, 1.05rem + 0.2vw, 1.25rem);
-      color: var(--color-font);
+      /* `!important` as in the Twig: `product.scss` forces the discounted price red with its own `!important`. */
+      color: var(--color-font) !important;
     }
 
     span {
       font-size: clamp(0.8rem, 0.9282rem + 0.3218vw, 1rem);
-      color: color-mix(in srgb, var(--color-font) 50%, transparent);
+      /* The old price is lighter than the new one, but 4.5:1 on the card: the 50% tint was halved again by the shared
+         `.s-product-card-sale-price span { opacity: .5 }` (`product.scss`), which gave 1.72:1. */
+      color: color-mix(in srgb, var(--color-font) 75%, transparent);
+      opacity: 1;
       text-decoration: line-through;
     }
   }

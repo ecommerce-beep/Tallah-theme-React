@@ -881,6 +881,24 @@
   @apply overflow-hidden;
 }
 
+/*
+  "Buy again" (the engine's `ReorderProducts`, for signed-in customers; `router.tsx` adds the class). Most have no past
+  order, so the block ends up empty: it reserves nothing and keeps its server skeleton hidden, rather than showing 450px+
+  of blank page for a moment and taking it back. 1px stays so the lazy wrapper's IntersectionObserver still has a
+  target; its margin only counts once there is something to show.
+*/
+.s-block--products-slider.s-block--reorder {
+  min-height: 1px !important; /* beats the wrapper's inline `min-height`, which is its estimate for the block */
+
+  &:not(:has(.s-products-carousel)) {
+    margin-top: 0;
+  }
+
+  > .s-skeleton-products-slider {
+    display: none;
+  }
+}
+
 .s-block--fixed-products {
   @extend %salla-container;
   @apply overflow-hidden;
@@ -1201,6 +1219,11 @@ salla-reviews:not(:has(.s-reviews-swiper-slide)) {
          points right; in LTR both point the other way. */
       svg {
         @apply w-5 h-5 ltr:-scale-x-100;
+      }
+
+      /* At either end of the row. */
+      &:disabled {
+        @apply cursor-default opacity-40 hover:border-gray-300 hover:text-gray-600;
       }
     }
   }

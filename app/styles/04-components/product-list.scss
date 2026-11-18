@@ -28,16 +28,33 @@
     }
   }
 
-  .two-columns,
-  .one-column {
-    @apply leading-none opacity-50 transition-all duration-300 ease-in-out;
+  /*
+    The phone / tablet one / two column switch: a framed pair of icon buttons, each a 40px square (the tap target),
+    the selected one filled in the primary color. Hidden from lg, where the grid is fixed.
+  */
+  .tallah-view-toggle {
+    @apply inline-flex shrink-0 items-stretch overflow-hidden border border-primary;
+  }
 
-    &.active {
-      @apply opacity-100;
+  .tallah-view-toggle__btn {
+    @apply inline-flex h-10 w-10 items-center justify-center bg-transparent p-0 text-primary transition-colors duration-200;
+
+    svg {
+      @apply h-6 w-6;
     }
 
-    &.one-column {
-      margin-top: -5px;
+    & + .tallah-view-toggle__btn {
+      @apply border-primary;
+      border-inline-start-width: 1px;
+    }
+
+    &.is-active {
+      @apply bg-primary text-background;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: -4px;
     }
   }
 }
@@ -55,6 +72,26 @@
 
   .s-products-list-wrapper.s-products-list-vertical-cards.tallah-list-grid.tallah-list-grid--two-columns {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /*
+    The remembered view before React has hydrated: the server always renders the two column grid, and the inline script
+    in `ProductListPage` (`GridViewScript`) copies the saved choice to `<html data-grid-view>`. These win over the class
+    by specificity (the attribute and `html` on top of the class rule's four classes), only while the two disagree; afterwards they match it, and `usePref` keeps the attribute
+    equal to the state.
+  */
+  html[data-grid-view='one-column'] .AR-index .s-products-list-wrapper.s-products-list-vertical-cards.tallah-list-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  html[data-grid-view='one-column'] .AR-index .tallah-view-toggle__btn:first-child,
+  html[data-grid-view='two-columns'] .AR-index .tallah-view-toggle__btn:last-child {
+    @apply bg-transparent text-primary;
+  }
+
+  html[data-grid-view='one-column'] .AR-index .tallah-view-toggle__btn:last-child,
+  html[data-grid-view='two-columns'] .AR-index .tallah-view-toggle__btn:first-child {
+    @apply bg-primary text-background;
   }
 }
 
@@ -124,6 +161,45 @@
 
   .s-price-range-inputs .s-button-element.s-button-icon {
     @apply border-primary bg-primary text-background;
+  }
+
+  /*
+    The Apply button (`FiltersPanel.tsx`) is the way to commit a range, so the SDK's arrow button (kept in the page: the
+    Apply button presses it) is not shown beside the fields while that one is there.
+  */
+  salla-price-range:has(.tallah-price-apply) .s-price-range-inputs salla-button {
+    @apply hidden;
+  }
+
+  .tallah-price-apply {
+    @apply mt-3 w-full;
+  }
+
+  .tallah-price-apply__error {
+    @apply mb-2 text-sm;
+    color: #c70036;
+  }
+
+  /* As the filters' "more" button: a square, primary block (here a full-width one, at the end of the price section). */
+  .tallah-price-apply__btn {
+    @apply inline-flex h-11 w-full items-center justify-center border border-primary bg-primary px-4 text-center text-base text-background transition-opacity;
+
+    &:disabled {
+      @apply cursor-not-allowed opacity-40;
+    }
+
+    &[aria-busy='true']:disabled {
+      @apply cursor-progress;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .s-price-range-number-input[aria-invalid='true'] {
+    border-color: #c70036;
   }
 
   /* +/- accordion marker: the Twig theme swaps the plus for a chevron */

@@ -4,10 +4,8 @@
 */
 
 /* AR-Hero-section -------------------------------------------------------- */
-/* The hero is the first thing on the page, under the header: no top margin from the block wrapper (the Twig has none). */
-main .s-block.s-block--AR-Hero-section {
-  margin-top: 0;
-}
+/* The block's margin and its loading skeleton's size live in the file the critical CSS shares. */
+@import './tallah-hero-first-screen';
 
 .AR-slider-hero-section {
   /*
@@ -20,47 +18,7 @@ main .s-block.s-block--AR-Hero-section {
     margin-inline: 0;
   }
 
-  /* The fixed bottom bar must not sit on a button placed at the bottom (see tallah-home.scss). */
-  /* Lifted with a transform, not a margin, so the centred text above it stays where the Twig puts it. */
-  .ar-hero-slider__cta--bottom {
-    transform: translateY(calc(-1 * var(--mobile-bottom-bar-clearance, 0px)));
-  }
-
-  .ar-hero-slider__banner {
-    /* 100svh on phones, 90vh from md. Set here, not only as utilities: Swiper's `.swiper-slide { height: 100% }` outranks them. */
-    height: 100svh;
-    /*
-      The slide is a flex column (text block on top, a `button_bottom` CTA pushed down with `mt-auto self-center`).
-      The vendored Swiper `.swiper-slide { display: block }` lands after Tailwind's `.flex` in app.css and won, so the
-      bottom CTA stretched to the slide's full width. Same specificity as the height above, so it also outranks Swiper.
-    */
-    display: flex;
-    flex-direction: column;
-    background: var(--ar-bg-mobile, none) center center / cover no-repeat;
-    /* `py-16` both ways, as in the Twig, so the text block stays centred. */
-    padding-block: 4rem;
-
-    @media (min-width: 768px) {
-      height: 90vh;
-      background: var(--ar-bg-desktop, none) center center / cover no-repeat;
-    }
-
-    /* Mobile only: a dark layer behind text that kept its default light color. */
-    &--scrim {
-      background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), var(--ar-bg-mobile, none);
-
-      @media (min-width: 768px) {
-        background-image: var(--ar-bg-desktop, none);
-      }
-    }
-
-    /* thin (300) small text over an image is hard to read */
-    .subtext {
-      @media (max-width: 767px) {
-        font-weight: 400;
-      }
-    }
-  }
+  /* The slide's own box (`.ar-hero-slider__banner`) and its bottom button live in the file the critical CSS shares. */
 
   /* Only the slide in view takes clicks, so a hidden banner's link never catches one. */
   &.ar-hero-slider--many {
@@ -131,6 +89,9 @@ main .s-block.s-block--AR-Hero-section {
 }
 
 /* AR-Custom-testimonials ------------------------------------------------- */
+/* The gap between home blocks (and above the footer) is the `.s-block` margin alone (2rem, 4rem from sm); the AR
+   blocks carry no vertical padding of their own, so every gap is the same. */
+
 .AR-testimonials {
   /* 1.5 / 2 / 3 / 4 cards per view from 0 / 400 / 640 / 860px, 4px apart (the Twig's Swiper config). */
   --ar-testimonials-per-view: 1.5;

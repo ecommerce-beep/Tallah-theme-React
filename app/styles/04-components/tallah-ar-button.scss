@@ -1,0 +1,24 @@
+/* The `ar-button` mixin only (no output of its own): shared by the home blocks and the hero's first-paint rules. */
+
+/* The outlined / filled button every `AR-*` banner shares; `$color` and `$bg` are the CSS
+   variables holding the merchant's text and fill colors (unset: the theme's own look). */
+@mixin ar-button($color, $bg) {
+  color: var(#{$color}, var(--color-background));
+  background-color: var(#{$bg}, var(--color-primary));
+  border: 1px solid var(#{$color}, color-mix(in srgb, var(--color-primary) 15%, white));
+
+  &:hover {
+    color: var(#{$bg}, var(--color-primary));
+    background-color: var(#{$color}, var(--color-background));
+    border-color: var(#{$bg}, var(--color-primary));
+  }
+
+  /* `transparent_button`: no fill until hover, and the border keeps the text color. */
+  &--transparent {
+    background-color: transparent;
+
+    &:hover {
+      border-color: var(#{$color}, var(--color-primary));
+    }
+  }
+}

@@ -14,6 +14,11 @@ vi.mock('@salla.sa/twilight-theme-engine/i18n', () => ({
   }),
 }));
 
+const twilight = vi.hoisted(() => ({ installments: [] as unknown }));
+vi.mock('@salla.sa/twilight-theme-engine/providers', () => ({
+  useTwilight: () => ({ store: { settings: { installments: twilight.installments } } }),
+}));
+
 vi.mock('@salla.sa/twilight-theme-engine/hooks', () => ({
   HookSlot: ({ name }: { name: string }) => <div data-hook-slot={name} />,
 }));
@@ -238,5 +243,52 @@ describe('ProductDetails description embeds', () => {
       'eager',
       'lazy',
     ]);
+  });
+});
+
+describe('ProductDetails installment placeholder', () => {
+  const wrapper = (container: HTMLElement) => container.querySelector('.product-details__installment');
+
+  beforeEach(() => {
+    twilight.installments = [];
+  });
+
+  it('marks the wrapper "none" for a store with an empty provider list, so its placeholder can be hidden', () => {
+    const { container } = render(<ProductDetails product={makeProduct()} />);
+    expect(wrapper(container)?.className).toContain('product-details__installment--none');
+  });
+
+  it('keeps the placeholder for a store with providers or an unknown value', () => {
+    for (const value of [['tabby'], { tabby: true }, null, undefined]) {
+      twilight.installments = value;
+      const { container, unmount } = render(<ProductDetails product={makeProduct()} />);
+      expect(wrapper(container)).toBeTruthy();
+      expect(wrapper(container)?.className).not.toContain('--none');
+      unmount();
+    }
+  });
+});
+
+describe('ProductDetails title', () => {
+  it('sets its line-height relative to the size, so a long title keeps its lines together at every breakpoint', async () => {
+    const { container } = render(
+      <ProductDetails product={makeProduct({ name: 'A very long product title that wraps over several lines on a phone' })} />
+    );
+    await waitFor(() => expect(container.querySelector('h1')).toBeTruthy());
+    const title = container.querySelector('h1')!;
+    // Not a fixed leading (40px was twice the phone size of 20px); a unitless one follows the size.
+    expect(title.className).not.toMatch(/\bleading-(?:\d+|\[\d+(?:px|rem)\])/);
+    expect(title.className).toContain('leading-[1.45]');
+  });
+
+  it('lets a long unbroken word wrap instead of widening the title row over the share and wishlist icons', async () => {
+    const { container } = render(<ProductDetails product={makeProduct({ name: 'SKU-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789' })} />);
+    await waitFor(() => expect(container.querySelector('h1')).toBeTruthy());
+    const title = container.querySelector('h1')!;
+    expect(title.className).toContain('min-w-0');
+    expect(title.className).toContain('[overflow-wrap:anywhere]');
+    // The one-line height of the design is kept.
+    expect(title.className).toContain('min-h-10');
+    expect(title.textContent).toBe('SKU-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789');
   });
 });

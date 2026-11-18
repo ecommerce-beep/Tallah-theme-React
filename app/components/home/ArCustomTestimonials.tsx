@@ -53,26 +53,35 @@ export const ArCustomTestimonials = memo(function ArCustomTestimonials({ data }:
 
   return (
     <section className={`AR-testimonials AR-testimonials-${position}`} suppressHydrationWarning>
-      <div className="wrapper text-font px-4 py-8">
-        <div className="heading flex justify-between gap-4">
-          <div className="titles">
+      {/* 10px is the theme's container gutter (`container.padding` in tailwind.config.cjs), the same inset as `AR_our_products`. */}
+      <div className="wrapper text-font px-[10px]">
+        {/* The same heading row as `AR_our_products`: title (+ subtext) at the start, link centred on it at the end. */}
+        <div className="heading flex items-center justify-between gap-4 pb-3 md:pb-6">
+          <div className="titles flex flex-col gap-1">
             {title && (
-              <p className="block-title mb-1 text-xl font-semibold" style={{ color: colorVar(data.blocktitle_color) }}>
+              <p
+                className="block-title text-primary text-[clamp(1rem,1.0204rem+0.9796vw,1.25rem)] font-semibold leading-6"
+                style={{ color: colorVar(data.blocktitle_color) }}
+              >
                 {title}
+              </p>
+            )}
+            {subtext && (
+              <p className="subtext text-base font-medium" style={{ color: colorVar(data.subtext_color) }}>
+                {subtext}
               </p>
             )}
           </div>
           {linkText && (
-            <Link to={href || '#'} className="block shrink-0 underline" style={{ color: colorVar(data.url_color) }}>
+            <Link
+              to={href || '#'}
+              className="text-graytext block shrink-0 text-base font-normal underline md:leading-6"
+              style={{ color: colorVar(data.url_color) }}
+            >
               {linkText}
             </Link>
           )}
         </div>
-        {subtext && (
-          <p className="subtext mb-4 text-base font-medium" style={{ color: colorVar(data.subtext_color) }}>
-            {subtext}
-          </p>
-        )}
 
         <div className="testimonials-wrapper relative">
           <div

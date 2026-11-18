@@ -1,10 +1,12 @@
 import { useEffect, useId, useState } from 'react';
 import type { RefObject } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { FormEvent, KeyboardEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@salla.sa/twilight-theme-engine/common';
 import { useTranslation } from '@salla.sa/twilight-theme-engine/i18n';
 import { useMoney } from '@salla.sa/twilight-theme-engine/hooks';
+import { useNavigate } from '@salla.sa/twilight-theme-engine/providers';
+import { searchPath } from '../../../lib/searchPath';
 import { product } from '@salla.sa/twilight-theme-engine/api/product';
 import type { Product } from '@salla.sa/twilight-theme-engine/types';
 import { SearchIcon } from '../../icons';
@@ -62,6 +64,7 @@ export function SearchPanel({ open, onClose, inputRef }: SearchPanelProps) {
   const { t } = useTranslation();
   const { trending, popular } = useTallahSettings();
   const listId = useId();
+  const navigate = useNavigate();
   const [text, setText] = useState('');
   const [suggestionsHidden, setSuggestionsHidden] = useState(false);
   const [active, setActive] = useState(-1);
@@ -87,6 +90,18 @@ export function SearchPanel({ open, onClose, inputRef }: SearchPanelProps) {
     setText(value);
     setActive(-1);
     setSuggestionsHidden(false);
+  };
+
+  // Enter and the search button share this: the typed text goes to the results page.
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const path = searchPath(text);
+    if (!path) {
+      inputRef.current?.focus();
+      return;
+    }
+    onClose();
+    navigate(path);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -124,8 +139,10 @@ export function SearchPanel({ open, onClose, inputRef }: SearchPanelProps) {
     >
       <div className="tallah-search__panel">
         <div className="tallah-search__inner">
-          <div className="tallah-search__field">
-            <SearchIcon aria-hidden="true" className="tallah-search__icon" />
+          <form className="tallah-search__field" role="search" onSubmit={submit}>
+            <button type="submit" className="tallah-search__submit" aria-label={t('blocks.header.search_label', 'Search')}>
+              <SearchIcon aria-hidden="true" className="tallah-search__icon" />
+            </button>
             <div className="relative w-full">
               <input
                 ref={inputRef}
@@ -182,7 +199,7 @@ export function SearchPanel({ open, onClose, inputRef }: SearchPanelProps) {
                 )}
               </div>
             </div>
-          </div>
+          </form>
 
           <div className="tallah-search__extras">
           {trending.length > 0 && (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, fireEvent, render } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { ArHeroSection } from '../../../app/components/home/ArHeroSection';
 
 const state = vi.hoisted(() => ({
@@ -48,7 +49,9 @@ const banner = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-const slides = (c: HTMLElement) => [...c.querySelectorAll('.ar-hero-slider__banner')] as HTMLElement[];
+// The slider's own slides; the first-paint copy (`.ar-hero-poster`) stands outside it.
+const slides = (c: HTMLElement) =>
+  [...c.querySelectorAll('[data-testid="slider"] .ar-hero-slider__banner')] as HTMLElement[];
 
 function fakeSwiper(running = true) {
   const handlers: Record<string, () => void> = {};
@@ -265,5 +268,116 @@ describe('ArHeroSection pause / play', () => {
     const { container } = render(<ArHeroSection data={two} />);
     act(() => state.onAfterInit?.({ detail: swiper }));
     expect((container.querySelector('.hero-autoplay-toggle') as HTMLButtonElement).hidden).toBe(true);
+  });
+});
+
+describe('ArHeroSection first image preload', () => {
+  // React hoists a rendered <link rel="preload"> into the document head.
+  const links = (_container: HTMLElement) =>
+    [...document.querySelectorAll('link[rel="preload"][as="image"]')].map((l) => [
+      l.getAttribute('href'),
+      l.getAttribute('media'),
+    ]);
+
+  it('asks for the first banner image for each screen size when the hero opens the page', () => {
+    const { container } = render(<ArHeroSection data={{ banner: [banner(), banner()], position: 1 }} />);
+    expect(links(container)).toEqual([
+      ['https://cdn.example/d.webp', '(min-width: 768px)'],
+      ['https://cdn.example/m.webp', '(max-width: 767px)'],
+    ]);
+  });
+
+  it('uses one request for the same image on every screen', () => {
+    const same = banner({ mobile_bg: 'https://cdn.example/d.webp' });
+    const { container } = render(<ArHeroSection data={{ banner: [same], position: 1 }} />);
+    expect(links(container)).toEqual([['https://cdn.example/d.webp', null]]);
+  });
+
+  it('asks for nothing when the hero sits further down the page', () => {
+    const { container } = render(<ArHeroSection data={{ banner: [banner()], position: 3 }} />);
+    expect(links(container)).toEqual([]);
+  });
+});
+
+describe('ArHeroSection first-paint copy', () => {
+  const poster = (c: HTMLElement) => c.querySelector('.ar-hero-poster') as HTMLElement | null;
+
+  it('renders the first banner outside the slider, so the server sends it before any script runs', () => {
+    const html = renderToString(<ArHeroSection data={{ banner: [banner(), banner({ block_title: 'عروض' })], position: 1 }} />);
+    expect(html).toContain('class="ar-hero-poster"');
+    expect(html).toContain('اكتشف الفخامة');
+    // (the real slider renders none of its slides on the server; the test double does)
+    const copy = html.split('class="ar-hero-poster"')[1].split('class="swiper-pagination')[0];
+    expect(copy).toContain('اكتشف الفخامة');
+    expect(copy).not.toContain('عروض');
+    expect(html).toContain('--ar-bg-desktop:url(');
+  });
+
+  it('is hidden from assistive technology and cannot be focused or clicked', () => {
+    const { container } = render(<ArHeroSection data={{ banner: [banner({ button_text: 'اكتشف' })], position: 1 }} />);
+    const copy = poster(container)!;
+    expect(copy.getAttribute('aria-hidden')).toBe('true');
+    expect(copy.hasAttribute('inert')).toBe(true);
+    expect(copy.querySelector('h2')?.textContent).toBe('اكتشف الفخامة');
+    expect(copy.querySelector('a.button')?.textContent).toBe('اكتشف');
+    expect(copy.closest('[data-testid="slider"]')).toBeNull();
+  });
+
+  it('keeps the same banner markup and classes as the slide it stands in for', () => {
+    const { container } = render(<ArHeroSection data={{ banner: [banner(), banner()], position: 1 }} />);
+    const copy = poster(container)!.querySelector('.ar-hero-slider__banner') as HTMLElement;
+    expect(copy.className).toBe(slides(container)[0].className);
+    expect(copy.getAttribute('style')).toBe(slides(container)[0].getAttribute('style'));
+  });
+
+  it('goes once the slider has initialised, after two frames, and leaves the real slides alone', () => {
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => (cb(0), 1));
+    try {
+      const { container } = render(<ArHeroSection data={{ banner: [banner(), banner()], position: 1 }} />);
+      expect(poster(container)).not.toBeNull();
+      act(() => state.onAfterInit?.({ detail: fakeSwiper() }));
+      expect(poster(container)).toBeNull();
+      expect(slides(container)).toHaveLength(2);
+    } finally {
+      raf.mockRestore();
+    }
+  });
+
+  it('draws its image as a <picture>: the phone image as the <img>, the desktop one for md and up', () => {
+    const { container } = render(<ArHeroSection data={{ banner: [banner()], position: 1 }} />);
+    const media = poster(container)!.querySelector('picture.ar-hero-poster__media')!;
+    expect(media.querySelector('source')?.getAttribute('media')).toBe('(min-width: 768px)');
+    expect(media.querySelector('source')?.getAttribute('srcset')).toBe('https://cdn.example/d.webp');
+    const img = media.querySelector('img')!;
+    expect(img.getAttribute('src')).toBe('https://cdn.example/m.webp');
+    expect(img.getAttribute('alt')).toBe('');
+  });
+
+  it('asks for the image with high priority when the hero opens the page, which the engine waits for before booting', () => {
+    const { container } = render(<ArHeroSection data={{ banner: [banner()], position: 1 }} />);
+    expect(poster(container)!.querySelector('img')?.getAttribute('fetchpriority')).toBe('high');
+  });
+
+  it('keeps a normal priority for a hero further down the page', () => {
+    const { container } = render(<ArHeroSection data={{ banner: [banner()], position: 3 }} />);
+    expect(poster(container)!.querySelector('img')?.hasAttribute('fetchpriority')).toBe(false);
+  });
+
+  it('uses a single <img> and no <source> when one image serves every screen', () => {
+    const same = banner({ mobile_bg: 'https://cdn.example/d.webp' });
+    const { container } = render(<ArHeroSection data={{ banner: [same], position: 1 }} />);
+    expect(poster(container)!.querySelector('source')).toBeNull();
+    expect(poster(container)!.querySelector('img')?.getAttribute('src')).toBe('https://cdn.example/d.webp');
+  });
+
+  it('falls back to the desktop image on phones when no phone image is set, as the slide does', () => {
+    const noPhone = banner({ mobile_bg: '' });
+    const { container } = render(<ArHeroSection data={{ banner: [noPhone], position: 1 }} />);
+    expect(poster(container)!.querySelector('img')?.getAttribute('src')).toBe('https://cdn.example/d.webp');
+  });
+
+  it('puts the image only in the first-paint copy: the slides of the slider keep their CSS background', () => {
+    const { container } = render(<ArHeroSection data={{ banner: [banner(), banner()], position: 1 }} />);
+    expect(slides(container).every((slide) => slide.querySelector('picture, img') === null)).toBe(true);
   });
 });

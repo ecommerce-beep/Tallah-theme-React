@@ -1,0 +1,57 @@
+/*
+  `AR_our_products` as it first paints: its product grid and the placeholder shown while the products load.
+  Imported by the critical home CSS and by `tallah-home.scss`, so the server's placeholder is laid out like the
+  cards that replace it (2 columns on phones, 3 from md, 4 from lg, 10px apart) before the full stylesheet is up.
+*/
+.ar-our-products__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* One placeholder per product, built from the card's own measures (`tallah-product-card.scss`): the image frame
+   uses the card's fluid height, the content its 4px / 8px padding, a 24px title line and the 2rem add button row. */
+.ar-our-products__skeleton-image {
+  height: clamp(19rem, 15.1268rem + 16.5258vw, 30rem);
+  background-color: #f4f4f5;
+}
+
+.ar-our-products__skeleton-content {
+  padding: 4px 8px;
+}
+
+.ar-our-products__skeleton-title {
+  display: block;
+  width: 70%;
+  height: 14px;
+  margin-block: 5px;
+  background-color: #f4f4f5;
+}
+
+.ar-our-products__skeleton-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+}
+
+.ar-our-products__skeleton-price {
+  width: 35%;
+  height: 20px;
+  background-color: #f4f4f5;
+}
+
+.ar-our-products__skeleton-button {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background-color: #f4f4f5;
+}

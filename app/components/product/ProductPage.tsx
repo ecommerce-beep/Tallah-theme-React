@@ -27,6 +27,7 @@ import {
 } from './TallahPdpParts';
 import { dropdownSetting, imageSetting } from '../../lib/localizedSetting';
 import { AddToCartForm } from './AddToCartForm';
+import { SingleOptionButtons } from './SingleOptionButtons';
 import { BlockHookSlot } from '../common';
 import { ProductsSlider } from '../home/ProductsSlider';
 import { relatedSource, sideSource, type RelatedSource } from '../../lib/relatedSource';
@@ -97,7 +98,7 @@ function SideProducts({ source, title }: { source: RelatedSource; title: string 
  * Upgrade notes: `FORKS.md`.
  */
 export function ProductPage({ product: initialProduct, page }: ProductPageProps) {
-  const { theme, store } = useTwilight();
+  const { theme } = useTwilight();
   const { t, locale } = useTranslation();
   const { product } = useProduct(initialProduct);
   const { commentsKey } = useComments();
@@ -209,6 +210,8 @@ export function ProductPage({ product: initialProduct, page }: ProductPageProps)
             <HookSlot name="product:single.form.start" />
             <AddToCartForm product={product} stickyAddToCart={theme.settings.sticky_add_to_cart} />
             <HookSlot name="product:single.form.end" />
+            {/* single.twig turns the size select into buttons (`initSizeOptionSingle`) */}
+            <SingleOptionButtons rootId={`product-${product.id}`} options={product.options} />
 
             <MobileActions>
               <SallaSocialShare className="inline-flex" aria-label="social share" />
@@ -255,22 +258,21 @@ export function ProductPage({ product: initialProduct, page }: ProductPageProps)
               </div>
             }
             reviews={
-              store.settings?.rating?.show_on_product ? (
-                <>
-                  {/* App-block hook `product.single.before_customer_reviews` — between the info and the reviews */}
-                  <BlockHookSlot
-                    name="product.single.before_customer_reviews"
-                    wrapper="s-before-reviews"
-                    scope={blockScope}
-                  />
-                  {/* `estimatedHeight="0"`: `RenderWhenVisible` hard-codes `min-height` on its
-                      wrapper section and never clears it, so the default 400px leaves an empty
-                      gap when the product has no reviews. Comments size themselves once present. */}
-                  <RenderWhenVisible estimatedHeight="0px" className="s-block--full-bg">
-                    <SallaComments key={commentsKey} itemId={product.id} type={'product' as never} />
-                  </RenderWhenVisible>
-                </>
-              ) : null
+              // single.twig always renders the reviews tab (its `show_on_product` condition is commented out).
+              <>
+                {/* App-block hook `product.single.before_customer_reviews` — between the info and the reviews */}
+                <BlockHookSlot
+                  name="product.single.before_customer_reviews"
+                  wrapper="s-before-reviews"
+                  scope={blockScope}
+                />
+                {/* `estimatedHeight="0"`: `RenderWhenVisible` hard-codes `min-height` on its
+                    wrapper section and never clears it, so the default 400px leaves an empty
+                    gap when the product has no reviews. Comments size themselves once present. */}
+                <RenderWhenVisible estimatedHeight="0px" className="s-block--full-bg">
+                  <SallaComments key={commentsKey} itemId={product.id} type={'product' as never} />
+                </RenderWhenVisible>
+              </>
             }
           />
         </div>

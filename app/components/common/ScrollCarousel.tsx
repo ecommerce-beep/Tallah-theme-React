@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Children, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ArrowLeftIcon, ArrowRightIcon } from '../icons';
+import { useCarouselEdges } from '../../hooks/useCarouselEdges';
 import { useDragScroll } from '../../hooks/useDragScroll';
 import { useMotionAllowed } from '../../hooks/useMotionAllowed';
+import { slideStep } from '../../lib/carouselScroll';
 import { forwardSign } from '../../lib/scrollDirection';
 import { CarouselDots } from './CarouselDots';
 
@@ -14,12 +16,6 @@ export interface ScrollCarouselProps {
   nextLabel: string;
   /** Scroll forward one slide on a timer, back to the start at the end. Off by default. */
   autoPlay?: boolean;
-}
-
-/** One slide and the gap after it. */
-function slideStep(el: HTMLElement) {
-  const first = el.firstElementChild as HTMLElement | null;
-  return (first?.offsetWidth || el.clientWidth * 0.8) + 24;
 }
 
 /** How long each slide stays before {@link ScrollCarousel}'s `autoPlay` moves on. */
@@ -42,6 +38,7 @@ export function ScrollCarousel({
   const { dragging, ...drag } = useDragScroll(track);
   const [pos, setPos] = useState(0);
   const [thumb, setThumb] = useState(1);
+  const edges = useCarouselEdges(track, Children.count(children));
 
   const sync = useCallback(() => {
     const el = track.current;
@@ -144,14 +141,17 @@ export function ScrollCarousel({
           />
         </div>
 
-        <div className="scroll-carousel__nav">
-          <button type="button" aria-label={prevLabel} onClick={() => step(-1)}>
-            <ArrowRightIcon aria-hidden="true" />
-          </button>
-          <button type="button" aria-label={nextLabel} onClick={() => step(1)}>
-            <ArrowLeftIcon aria-hidden="true" />
-          </button>
-        </div>
+        {/* Nothing to scroll (fewer slides than fit): no arrows to press. */}
+        {edges.scrollable && (
+          <div className="scroll-carousel__nav">
+            <button type="button" aria-label={prevLabel} disabled={edges.atStart} onClick={() => step(-1)}>
+              <ArrowRightIcon aria-hidden="true" />
+            </button>
+            <button type="button" aria-label={nextLabel} disabled={edges.atEnd} onClick={() => step(1)}>
+              <ArrowLeftIcon aria-hidden="true" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, useSyncExternalStore, type ReactNode } from 'react';
 import { HookSlot } from '@salla.sa/twilight-theme-engine/hooks';
 import { useStore } from '@salla.sa/twilight-theme-engine/hooks/useStore';
 import { useTranslation } from '@salla.sa/twilight-theme-engine/i18n';
@@ -11,7 +11,6 @@ import {
   Image,
   RenderWhenVisible,
 } from '@salla.sa/twilight-theme-engine/common';
-import { SallaFilters } from '@salla.sa/twilight-components-react/filters';
 import {
   ItemsList,
   ReviewItemSkeleton,
@@ -25,42 +24,98 @@ import { TallahProductCard } from './TallahProductCard';
 import { useAppliedFilters, parseFiltersFromSearch } from '@salla.sa/twilight-theme-engine/routes/product-listing';
 import type { ProductListFilters } from '@salla.sa/twilight-theme-engine/api/product';
 import { BlockHookSlot, BottomSheet } from '../common';
-import { FilterHorizontalIcon } from '../icons';
+import { FiltersPanel } from './FiltersPanel';
+import { useEffectivePriceList } from '../../hooks/useEffectivePriceList';
+import { priceSortFor } from '../../lib/effectivePriceList';
+import { FilterHorizontalIcon, ViewGridIcon, ViewListIcon } from '../icons';
 
 /** Mobile grid density; same localStorage key and values as the Twig theme's `product/index.twig`. */
 type Cols = 'two-columns' | 'one-column';
 
-/** localStorage-backed toolbar preference, read after mount to avoid SSR mismatch. */
+/** Same-tab changes do not fire `storage`, so `usePref` announces its own writes. */
+const PREF_EVENT = 'tallah:pref';
+
+/** Where a choice lives once localStorage refuses it (private mode), so the buttons still work. */
+const memoryPrefs = new Map<string, string>();
+
+const GRID_VIEW_KEY = 'gridView';
+const GRID_VIEWS = ['two-columns', 'one-column'] as const;
+/** On `<html>`, so the stylesheet can show the remembered view before React has hydrated (see `GridViewScript`). */
+const GRID_VIEW_ATTR = 'data-grid-view';
+
+/**
+ * localStorage-backed toolbar preference. The server snapshot is `initial`; on the client it is the stored value,
+ * read through `useSyncExternalStore`, so the first client render already has a returning visitor's choice and the
+ * buttons always match the grid they drive, across tabs too. `mirrorAttr` keeps that value on `<html>` for the CSS.
+ */
 function usePref<T extends string>(
   key: string,
   values: readonly T[],
-  initial: T
+  initial: T,
+  mirrorAttr?: string
 ): [T, (v: T) => void] {
-  const [value, setValue] = useState<T>(initial);
-  useEffect(() => {
+  const read = useCallback((): T => {
     try {
-      const stored = window.localStorage.getItem(key) as T | null;
-      // This fills the hook's own state from localStorage; no parent is
-      // involved: see .react-doctor/false-positives.md.
-      // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent
-      if (stored && values.includes(stored)) setValue(stored);
+      const stored = (memoryPrefs.has(key) ? memoryPrefs.get(key) : window.localStorage.getItem(key)) as
+        | T
+        | null
+        | undefined;
+      return stored && values.includes(stored) ? stored : initial;
     } catch {
-      /* private mode */
+      return initial;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [key, initial]);
+  const subscribe = useCallback(
+    (notify: () => void) => {
+      const mirror = () => {
+        if (mirrorAttr) document.documentElement.setAttribute(mirrorAttr, read());
+      };
+      const onStorage = (event: StorageEvent) => {
+        if (event.key !== null && event.key !== key) return;
+        mirror();
+        notify();
+      };
+      const onPref = () => {
+        mirror();
+        notify();
+      };
+      mirror();
+      window.addEventListener('storage', onStorage);
+      window.addEventListener(PREF_EVENT, onPref);
+      return () => {
+        window.removeEventListener('storage', onStorage);
+        window.removeEventListener(PREF_EVENT, onPref);
+      };
+    },
+    [key, mirrorAttr, read]
+  );
+  const value = useSyncExternalStore(subscribe, read, () => initial);
   const set = useCallback(
     (v: T) => {
-      setValue(v);
       try {
         window.localStorage.setItem(key, v);
+        memoryPrefs.delete(key);
       } catch {
-        /* private mode */
+        memoryPrefs.set(key, v); // private mode: this copy carries the choice until the page closes
       }
+      window.dispatchEvent(new Event(PREF_EVENT));
     },
     [key]
   );
   return [value, set];
+}
+
+/**
+ * The server cannot read localStorage, so it always renders the two column grid, and the browser paints that HTML
+ * before React hydrates: a visitor who chose one column saw two for the length of that gap. This inline script runs as
+ * the HTML is parsed, just before the grid, and puts the remembered view on `<html>`; `product-list.scss` lays the grid
+ * out from it. It renders the same on the server and the client, so hydration has nothing to reconcile.
+ */
+const GRID_VIEW_SCRIPT = `try{var v=localStorage.getItem('${GRID_VIEW_KEY}');if(v==='one-column'||v==='two-columns')document.documentElement.setAttribute('${GRID_VIEW_ATTR}',v)}catch(e){}`;
+
+function GridViewScript() {
+  return <script dangerouslySetInnerHTML={{ __html: GRID_VIEW_SCRIPT }} />;
 }
 
 /** `ItemsList`'s `loader` for infinite scroll - the route already loaded the
@@ -148,6 +203,7 @@ function CatalogToolbar({
   selectedSort,
   sortOptionsWithTrans,
   onSortChange,
+  priceNote,
 }: {
   title: ReactNode;
   showFilters: boolean;
@@ -159,6 +215,8 @@ function CatalogToolbar({
   selectedSort: string;
   sortOptionsWithTrans: ReturnType<typeof sortOptions>;
   onSortChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  /** The price order could not be made to match the prices shown: say so. */
+  priceNote: boolean;
 }) {
   const { t } = useTranslation();
   const count =
@@ -170,6 +228,7 @@ function CatalogToolbar({
 
   return (
     <>
+      <GridViewScript />
       <div className="tallah-list-bar mb-4 flex items-center justify-between gap-3 sm:mb-6">
         <h1
           className="primary-bold w-full text-sm max-lg:sr-only md:text-xl lg:text-center"
@@ -205,29 +264,40 @@ function CatalogToolbar({
         )}
       </div>
 
+      {priceNote && (
+        <p role="status" className="tallah-price-order-note mb-3 text-sm text-gray-500" data-testid="price-order-note">
+          {t('blocks.catalog.price_order_approximate', 'The order may not follow sale prices exactly')}
+        </p>
+      )}
+
       <div className="mb-4 flex items-center justify-between lg:hidden">
         <p className="primary-bold flex-1 text-sm" aria-hidden="true">
           {title}
           {count}
         </p>
-        <div className="flex flex-1 items-center justify-end gap-1.5 text-2xl">
+        {/* One or two product columns on phones and tablets (the grid is fixed from lg); the choice is remembered. */}
+        <div
+          className="tallah-view-toggle"
+          role="group"
+          aria-label={t('blocks.catalog.view_mode', 'Display')}
+        >
           <button
             type="button"
-            className={`two-columns${cols === 'two-columns' ? ' active' : ''}`}
+            className={`tallah-view-toggle__btn${cols === 'two-columns' ? ' is-active' : ''}`}
             aria-pressed={cols === 'two-columns'}
             aria-label={t('blocks.catalog.view_grid', 'Grid view')}
             onClick={() => onColsChange('two-columns')}
           >
-            <i className="sicon-pause" aria-hidden="true" />
+            <ViewGridIcon aria-hidden="true" />
           </button>
           <button
             type="button"
-            className={`one-column rotate-90${cols === 'one-column' ? ' active' : ''}`}
+            className={`tallah-view-toggle__btn${cols === 'one-column' ? ' is-active' : ''}`}
             aria-pressed={cols === 'one-column'}
             aria-label={t('blocks.catalog.view_list', 'List view')}
             onClick={() => onColsChange('one-column')}
           >
-            <i className="sicon-pause" aria-hidden="true" />
+            <ViewListIcon aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -298,7 +368,7 @@ function CatalogGrid({
             <span className="text-base font-semibold">{t('pages.categories.filters', 'Filters')}</span>
           </div>
           {hasFilters && <ClearFiltersButton onClick={onClearFilters} />}
-          <SallaFilters key={filtersKey} id="filters-menu" filters={filters as never} />
+          <FiltersPanel key={filtersKey} id="filters-menu" filters={filters} busy={filterStatus === 'loading'} />
         </div>
       )}
 
@@ -411,7 +481,7 @@ export function ProductListPage({
   const selectedSort = query.sort;
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filtersKey, setFiltersKey] = useState(0);
-  const [cols, setCols] = usePref<Cols>('gridView', ['two-columns', 'one-column'], 'two-columns');
+  const [cols, setCols] = usePref<Cols>(GRID_VIEW_KEY, GRID_VIEWS, 'two-columns', GRID_VIEW_ATTR);
 
   const showFilters = !!(query.filters && store?.settings?.product?.filters);
 
@@ -428,13 +498,13 @@ export function ProductListPage({
   // request fails nothing stale passes for the new selection. Infinite scroll is only live
   // for the loader's own page or a fully loaded filtered one.
   const shownPage = filterStatus === 'ready' ? filteredPage : lastPage;
-  const shownProducts =
+  const baseProducts =
     filterStatus === 'error'
       ? []
       : filterStatus === 'idle'
         ? products
         : (shownPage?.items ?? products);
-  const shownNext =
+  const baseNext =
     filterStatus === 'idle'
       ? pagination?.next
       : filterStatus === 'ready'
@@ -445,6 +515,14 @@ export function ProductListPage({
       ? ''
       : `${filterStatus}${filterStatus === 'ready' ? JSON.stringify(appliedFilters) : ''}`;
 
+  // Price sorts: the API orders by regular price, the cards show the sale price. Merge the two server orders so the
+  // list follows the prices on screen (a no-op for a catalog with nothing on sale).
+  const priceList = useEffectivePriceList(priceSortFor(selectedSort, source.type), source, appliedFilters, baseProducts);
+  const priceReady = priceList.status === 'ready' && filterStatus !== 'error';
+  const shownProducts = priceReady ? priceList.items : baseProducts;
+  const shownNext = priceReady ? (priceList.hasMore ? 'price-order' : null) : baseNext;
+  const gridStatus = priceList.status === 'loading' && filterStatus !== 'error' ? 'loading' : filterStatus;
+
   const isBrand = source.type === 'brands';
   const isReorder = source.type === 'reorder';
   useReorderButtons(isReorder);
@@ -452,7 +530,15 @@ export function ProductListPage({
   const sortOptionsWithTrans = useMemo(() => sortOptions(selectedSort, t), [selectedSort, t]);
 
   useEffect(() => {
-    const handleFiltersChanged = () => setFiltersOpen(false);
+    const handleFiltersChanged = () => {
+      setFiltersOpen(false);
+      // A new selection starts the list again: drop the page the address bar may still carry from before.
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('page')) {
+        url.searchParams.delete('page');
+        window.history.replaceState(window.history.state, '', url);
+      }
+    };
     return onSallaEvent('salla-filters::changed', handleFiltersChanged);
   }, []);
 
@@ -513,7 +599,8 @@ export function ProductListPage({
       source.type === 'categories' && source.value ? { category_id: source.value } : undefined,
     [source.type, source.value]
   );
-  const loader = useCatalogLoader(source, selectedSort, shownNext, appliedFilters);
+  const catalogLoader = useCatalogLoader(source, selectedSort, baseNext, appliedFilters);
+  const loader = priceReady ? priceList.loadMore : catalogLoader;
 
   // Filter-less lists (offers, etc.) get the full row: 5 columns on desktop.
   const wideGridClass = !query.filters ? ' s-products-list-cols-5' : '';
@@ -558,12 +645,13 @@ export function ProductListPage({
             selectedSort={selectedSort}
             sortOptionsWithTrans={sortOptionsWithTrans}
             onSortChange={handleSortChange}
+            priceNote={priceList.approximate}
           />
           }
           showFilters={showFilters}
           filters={filters}
-          listKey={`${listKey}${filteredKey}`}
-          filterStatus={filterStatus}
+          listKey={`${listKey}${filteredKey}${priceReady ? ':price-order' : ''}`}
+          filterStatus={gridStatus}
           onRetry={retryFilters}
           selectedSort={selectedSort}
           cols={cols}
@@ -588,7 +676,7 @@ export function ProductListPage({
           title={t('pages.categories.filters', 'Filters')}
         >
           {hasFilters && <ClearFiltersButton onClick={clearFilters} />}
-          <SallaFilters key={filtersKey} id="filters-menu-mobile" filters={filters as never} />
+          <FiltersPanel key={filtersKey} id="filters-menu-mobile" filters={filters} busy={filterStatus === 'loading'} />
         </BottomSheet>
       )}
 

@@ -48,56 +48,96 @@ beforeEach(() => {
 });
 
 const root = (c: HTMLElement) => c.querySelector('[data-testid="tallah-mobile-menu"]') as HTMLElement;
+const rowLinks = (c: HTMLElement) => [...c.querySelectorAll('.tallah-mobile-menu__row > a')] as HTMLAnchorElement[];
 
 describe('MobileMenu', () => {
   it('is inert while closed and open when asked', () => {
-    const closed = render(<MobileMenu open={false} onClose={() => {}} advanced={false} />);
+    const closed = render(<MobileMenu open={false} onClose={() => {}} />);
     expect(root(closed.container).hasAttribute('inert')).toBe(true);
     expect(root(closed.container).classList.contains('is-open')).toBe(false);
 
-    const open = render(<MobileMenu open onClose={() => {}} advanced={false} />);
+    const open = render(<MobileMenu open onClose={() => {}} />);
     expect(root(open.container).hasAttribute('inert')).toBe(false);
     expect(root(open.container).classList.contains('is-open')).toBe(true);
   });
 
-  it('shows the first tab’s children, and another tab’s on click', () => {
-    const { container, getByRole } = render(<MobileMenu open onClose={() => {}} advanced={false} />);
-    const rows = () => [...container.querySelectorAll('.tallah-mobile-menu__row')].map((r) => r.textContent);
-    expect(rows()).toEqual(['Dresses', 'Sale']);
-
-    fireEvent.click(getByRole('tab', { name: 'Men' }));
-    // A tab with no children gets one "Show all" link to itself.
-    expect(rows()).toEqual(['Show all']);
-    expect(container.querySelector('a.tallah-mobile-menu__row')?.getAttribute('href')).toBe('/men');
+  it('lists every root link of the store menu, one per row, with the store’s own titles and urls', () => {
+    const { container } = render(<MobileMenu open onClose={() => {}} />);
+    const roots = [...container.querySelectorAll('.tallah-mobile-menu__content > ul > li > .tallah-mobile-menu__row > a')];
+    expect(roots.map((a) => a.textContent)).toEqual(['Women', 'Men']);
+    expect(roots.map((a) => a.getAttribute('href'))).toEqual(['/women', '/men']);
+    // No tabs any more: nothing is laid out in one horizontal row.
+    expect(container.querySelector('[role="tablist"]')).toBeNull();
   });
 
-  it('marks the active tab for assistive technology', () => {
-    const { getByRole } = render(<MobileMenu open onClose={() => {}} advanced={false} />);
-    expect(getByRole('tab', { name: 'Women' }).getAttribute('aria-selected')).toBe('true');
-    expect(getByRole('tab', { name: 'Men' }).getAttribute('aria-selected')).toBe('false');
+  it('gives only an item with children a toggle, collapsed at first', () => {
+    const { container } = render(<MobileMenu open onClose={() => {}} />);
+    const toggles = [...container.querySelectorAll('.tallah-mobile-menu__toggle')] as HTMLElement[];
+    // Women and Dresses have children; Men and Sale do not.
+    expect(toggles).toHaveLength(2);
+    expect(toggles[0].getAttribute('aria-expanded')).toBe('false');
+    expect(toggles[0].getAttribute('aria-label')).toBe('Show or hide Women sub-categories');
+    const panel = container.querySelector(`[id="${toggles[0].getAttribute('aria-controls')}"]`) as HTMLElement;
+    expect(panel.hidden).toBe(true);
   });
 
-  it('opens a sub-panel for a child with its own children only with the advanced menu', () => {
-    const plain = render(<MobileMenu open onClose={() => {}} advanced={false} />);
-    expect(plain.container.querySelector('.tallah-mobile-menu__row button')).toBeNull();
+  it('opens and closes the children under their parent, nested, without leaving the page', () => {
+    const onClose = vi.fn();
+    const { container } = render(<MobileMenu open onClose={onClose} />);
+    const [women, dresses] = [...container.querySelectorAll('.tallah-mobile-menu__toggle')] as HTMLElement[];
+    const panelOf = (t: HTMLElement) => container.querySelector(`[id="${t.getAttribute('aria-controls')}"]`) as HTMLElement;
 
-    const { container } = render(<MobileMenu open onClose={() => {}} advanced />);
-    const arrow = container.querySelector('.tallah-mobile-menu__row button')!;
-    const sub = container.querySelector('.tallah-mobile-menu__sub')!;
-    expect(sub.classList.contains('is-open')).toBe(false);
+    fireEvent.click(women);
+    expect(women.getAttribute('aria-expanded')).toBe('true');
+    expect(panelOf(women).hidden).toBe(false);
+    expect([...panelOf(women).querySelectorAll(':scope > ul > li > .tallah-mobile-menu__row > a')].map((a) => a.textContent)).toEqual([
+      'Dresses',
+      'Sale',
+    ]);
+    expect(panelOf(dresses).hidden).toBe(true);
 
-    fireEvent.click(arrow);
-    expect(sub.classList.contains('is-open')).toBe(true);
-    expect([...sub.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['Maxi', 'Mini']);
-    expect(sub.querySelectorAll('.tallah-mobile-menu__images img')).toHaveLength(1);
+    fireEvent.click(dresses);
+    expect([...panelOf(dresses).querySelectorAll('a')].map((a) => a.textContent)).toEqual(['Maxi', 'Mini']);
+    expect(panelOf(dresses).hidden).toBe(false);
 
-    fireEvent.click(sub.querySelector('.tallah-mobile-menu__back')!);
-    expect(sub.classList.contains('is-open')).toBe(false);
+    fireEvent.click(women);
+    expect(women.getAttribute('aria-expanded')).toBe('false');
+    expect(panelOf(women).hidden).toBe(true);
+    // Toggling is not navigation: the menu stayed open.
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('keeps the parent link a real link to its own category', () => {
+    const onClose = vi.fn();
+    const { container } = render(<MobileMenu open onClose={onClose} />);
+    const women = rowLinks(container)[0];
+    expect(women.getAttribute('href')).toBe('/women');
+    fireEvent.click(women);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('.tallah-mobile-menu__toggle')!.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('collapses everything again when the menu closes', () => {
+    const { container, rerender } = render(<MobileMenu open onClose={() => {}} />);
+    const women = container.querySelector('.tallah-mobile-menu__toggle')!;
+    fireEvent.click(women);
+    expect(women.getAttribute('aria-expanded')).toBe('true');
+    rerender(<MobileMenu open={false} onClose={() => {}} />);
+    rerender(<MobileMenu open onClose={() => {}} />);
+    expect(container.querySelector('.tallah-mobile-menu__toggle')!.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('is a labelled modal dialog around a labelled navigation', () => {
+    const { container } = render(<MobileMenu open onClose={() => {}} />);
+    const dialog = container.querySelector('[role="dialog"]')!;
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(dialog.getAttribute('aria-label')).toBe('Menu');
+    expect(dialog.querySelector('nav')?.getAttribute('aria-label')).toBe('Menu');
   });
 
   it('closes from the backdrop, on Escape and when a link is followed', () => {
     const onClose = vi.fn();
-    const { container } = render(<MobileMenu open onClose={onClose} advanced={false} />);
+    const { container } = render(<MobileMenu open onClose={onClose} />);
 
     fireEvent.click(container.querySelector('.tallah-mobile-menu__backdrop')!);
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -105,13 +145,13 @@ describe('MobileMenu', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(2);
 
-    fireEvent.click(container.querySelector('.tallah-mobile-menu__row a')!);
+    fireEvent.click(rowLinks(container)[1]);
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 
   it('does not listen for Escape while closed', () => {
     const onClose = vi.fn();
-    render(<MobileMenu open={false} onClose={onClose} advanced={false} />);
+    render(<MobileMenu open={false} onClose={onClose} />);
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
   });

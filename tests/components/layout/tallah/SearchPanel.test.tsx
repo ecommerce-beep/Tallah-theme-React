@@ -7,6 +7,7 @@ const state = {
   settings: {} as Record<string, unknown>,
   items: [] as { id: number; name: string; url: string; price: number; image?: { url: string } }[],
   queried: [] as { enabled?: boolean; params: unknown }[],
+  navigate: vi.fn(),
 };
 
 vi.mock('@tanstack/react-query', () => ({
@@ -22,6 +23,7 @@ vi.mock('@salla.sa/twilight-theme-engine/api/product', () => ({
 }));
 vi.mock('@salla.sa/twilight-theme-engine/providers', () => ({
   useTwilight: () => ({ theme: { settings: state.settings }, store: {} }),
+  useNavigate: () => state.navigate,
 }));
 vi.mock('@salla.sa/twilight-theme-engine/i18n', () => ({
   useTranslation: () => ({ locale: 'ar', t: (_k: string, fb?: string) => fb ?? _k }),
@@ -41,6 +43,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   state.settings = {};
   state.queried = [];
+  state.navigate.mockClear();
   state.items = [
     { id: 1, name: 'Chair', url: '/p1', price: 100 },
     { id: 2, name: 'Table', url: '/p2', price: 200 },
@@ -165,5 +168,44 @@ describe('SearchPanel', () => {
     expect(input.value).toBe('chair');
     rerender(<SearchPanel open={false} onClose={() => {}} inputRef={createRef()} />);
     expect(input.value).toBe('');
+  });
+
+  describe('submitting the typed query', () => {
+    it('goes to the results page with the whole query encoded, from the search button', () => {
+      const { type, getByRole, onClose } = setup();
+      type('  جاكيت رجالي & نص #1 ');
+      fireEvent.click(getByRole('button', { name: 'Search' }));
+      expect(state.navigate).toHaveBeenCalledTimes(1);
+      expect(state.navigate).toHaveBeenCalledWith(
+        '/search?q=' + encodeURIComponent('جاكيت رجالي & نص #1')
+      );
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('lets Enter submit the form when no suggestion is highlighted, so the full text is searched', () => {
+      const { type, input, container } = setup();
+      type('shirt');
+      // Enter is not prevented, so the browser submits the form (the button is its default).
+      expect(fireEvent.keyDown(input, { key: 'Enter' })).toBe(true);
+      fireEvent.submit(container.querySelector('form')!);
+      expect(state.navigate).toHaveBeenCalledWith('/search?q=shirt');
+    });
+
+    it('opens the highlighted suggestion instead of searching, on Enter', () => {
+      const { type, input } = setup();
+      type('x');
+      fireEvent.keyDown(input, { key: 'ArrowDown' });
+      expect(fireEvent.keyDown(input, { key: 'Enter' })).toBe(false); // handled; the form does not submit
+      expect(state.navigate).not.toHaveBeenCalled();
+    });
+
+    it('ignores an empty or whitespace-only query and keeps the focus in the field', () => {
+      const { type, input, container, onClose } = setup();
+      type('   ');
+      fireEvent.submit(container.querySelector('form')!);
+      expect(state.navigate).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(input);
+    });
   });
 });

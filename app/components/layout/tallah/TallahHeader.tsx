@@ -378,7 +378,7 @@ export function TallahHeader({ navOpen: navOpenProp, onNavOpenChange }: TallahHe
         </div>
       </div>
 
-      <MobileMenu open={navOpen} onClose={() => setNavOpen(false)} advanced={settings.advancedMenu} />
+      <MobileMenu open={navOpen} onClose={() => setNavOpen(false)} />
 
       <button
         type="button"

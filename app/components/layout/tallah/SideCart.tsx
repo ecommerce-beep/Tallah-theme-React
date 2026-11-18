@@ -40,6 +40,23 @@ export function useSideCart(enabled: boolean) {
     }
   }, [cartId, queryClient]);
 
+  // The cart id only exists once the SDK is up. A page that asks for it earlier gets `null` and, with nothing
+  // to retry it, would show an empty drawer for a cart that has items: ask again as soon as the SDK is ready.
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    const askAgain = () => {
+      if (!cancelled) void queryClient.invalidateQueries({ queryKey: cartApi.queries.currentId().queryKey });
+    };
+    // The SDK script may not even exist yet: `theme::ready` covers that, `onReady` the SDK that is already there.
+    document.addEventListener('theme::ready', askAgain);
+    void (window.salla as { onReady?: () => Promise<unknown> } | undefined)?.onReady?.().then(askAgain);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('theme::ready', askAgain);
+    };
+  }, [enabled, queryClient]);
+
   useEffect(() => {
     if (!enabled) return;
     const onAdded = () => {
@@ -94,7 +111,7 @@ interface SideCartProps {
 export function SideCart({ open, onClose, cart, refresh }: SideCartProps) {
   const { t } = useTranslation();
   const { format } = useMoney();
-  const { currency } = useTwilight();
+  const { currency, store } = useTwilight();
   const panelRef = useRef<HTMLElement>(null);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -116,6 +133,12 @@ export function SideCart({ open, onClose, cart, refresh }: SideCartProps) {
   const coupon = cart?.coupon ?? '';
   const bar = cart?.free_shipping_bar;
   const total = cart?.total;
+  const filled = items.length > 0;
+  // The Twig prints a "tax included" note under the total when the store's prices are taxable.
+  const taxIncluded = (store?.settings as { tax?: { taxable_prices_enabled?: boolean } } | undefined)?.tax?.taxable_prices_enabled === true;
+  const countLabel = cart
+    ? t(cart.count === 1 ? 'pages.cart.sidecart_count_one' : 'pages.cart.sidecart_count_other', cart.count === 1 ? '(:count item)' : '(:count items)').replace(':count', String(cart.count))
+    : '';
 
   const submitCoupon = async (event: FormEvent) => {
     event.preventDefault();
@@ -159,7 +182,7 @@ export function SideCart({ open, onClose, cart, refresh }: SideCartProps) {
         <div className="tallah-sidecart__body">
           <h2>
             {t('pages.checkout.cart', 'Cart')}
-            {cart && items.length > 0 && <span> ({cart.count})</span>}
+            {cart && filled && <span> {countLabel}</span>}
           </h2>
 
           {bar && (
@@ -196,9 +219,9 @@ export function SideCart({ open, onClose, cart, refresh }: SideCartProps) {
         </div>
 
         <div className="tallah-sidecart__footer">
-          <form onSubmit={submitCoupon} noValidate>
+          <form onSubmit={submitCoupon} noValidate className="tallah-sidecart__coupon">
             <label htmlFor="tallah-sidecart-coupon">{t('pages.cart.have_coupon', 'Have a coupon?')}</label>
-            <div>
+            <div className="tallah-sidecart__coupon-field">
               <input
                 id="tallah-sidecart-coupon"
                 value={coupon || code}
@@ -222,29 +245,35 @@ export function SideCart({ open, onClose, cart, refresh }: SideCartProps) {
             )}
           </form>
 
-          {items.length > 0 && (
-            <dl className="tallah-sidecart__totals">
-              <div>
-                <dt>{t('pages.cart.items_total', 'Items total')}</dt>
-                <dd>{cart?.sub_total ? format(cart.sub_total) : ''}</dd>
-              </div>
-              <div>
-                <dt>{t('pages.cart.discount', 'Discount')}</dt>
-                <dd>{format(cart?.total_discount ?? cart?.discount ?? 0)}</dd>
-              </div>
-              <div className="tallah-sidecart__final">
-                <dt>{t('pages.cart.final_total', 'Total')}</dt>
-                <dd>{format(typeof total === 'string' ? Number(total) : total)}</dd>
-              </div>
-            </dl>
-          )}
+          {/* As the Twig: the rows are always there; with an empty cart their values are blank. */}
+          <dl className="tallah-sidecart__totals">
+            <div>
+              <dt>{t('pages.cart.items_total', 'Items total')}</dt>
+              <dd>{filled && cart?.sub_total ? format(cart.sub_total) : ''}</dd>
+            </div>
+            <div>
+              <dt>{t('pages.cart.discount', 'Discount')}</dt>
+              <dd>{filled ? format(cart?.total_discount ?? cart?.discount ?? 0) : ''}</dd>
+            </div>
+            <div className="tallah-sidecart__final">
+              <dt>
+                <h5 className="font-semibold">{t('pages.cart.final_total', 'Total')}</h5>
+                {taxIncluded && (
+                  <small className="opacity-70">
+                    <span className="text-red-600" aria-hidden="true">*</span> {t('pages.products.tax_included', 'Tax included')}
+                  </small>
+                )}
+              </dt>
+              <dd>{filled ? format(typeof total === 'string' ? Number(total) : total) : ''}</dd>
+            </div>
+          </dl>
 
           <div className="tallah-sidecart__actions">
             <button type="button" onClick={onClose}>
               {t('pages.offer.continue_shopping', 'Continue shopping')}
             </button>
             <Link to="/cart" className="is-primary" onClick={onClose}>
-              {t('pages.cart.goToCartPage', t('pages.cart.view_cart', 'View cart'))}
+              {t('pages.cart.goToCartPage', 'Go to cart')}
             </Link>
           </div>
         </div>

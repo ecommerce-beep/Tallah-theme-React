@@ -10,6 +10,7 @@ import { HookSlot } from '@salla.sa/twilight-theme-engine/hooks';
 import { Image, Link } from '@salla.sa/twilight-theme-engine/common';
 import { ImageModal } from '@salla.sa/twilight-theme-engine/modal';
 import { useHydrated } from '../../../hooks/useHydrated';
+import { hasPaymentContent } from '../../../lib/footerPayments';
 import { Newsletter } from './Newsletter';
 import { useTallahSettings } from './settings';
 
@@ -32,7 +33,8 @@ function TaxNumber() {
   const certificate = store.settings?.tax?.certificate;
   if (!number) return null;
 
-  const label = t('common.elements.tax_certificate', 'Tax Certificate');
+  // As the Twig's modal: the tax number titles it, "Tax Number" labels the button.
+  const label = t('common.elements.tax_number', 'Tax Number');
   return (
     <div className="tallah-footer__tax" data-testid="tallah-footer-tax">
       {certificate && (
@@ -40,7 +42,7 @@ function TaxNumber() {
           <button type="button" aria-label={label} aria-haspopup="dialog" onClick={() => setOpen(true)}>
             <img src={TAX_ICON_URL} alt="" width={40} height={50} loading="lazy" decoding="async" />
           </button>
-          <ImageModal isOpen={open} onClose={() => setOpen(false)} src={certificate} alt={label} title={label} />
+          <ImageModal isOpen={open} onClose={() => setOpen(false)} src={certificate} alt={number} title={number} />
         </>
       )}
       <div>
@@ -75,6 +77,10 @@ export function TallahFooter() {
   const hasContacts = Boolean(store.contacts?.phone || store.contacts?.email);
   const hasApps = Boolean(store.apps?.appstore || store.apps?.googleplay);
   const pagesLinks = t('blocks.footer.pages_links', 'Pages');
+  const hasPayments = hasPaymentContent(store.settings);
+  const hasTax = Boolean(store.settings?.tax?.number);
+  // A store with no payment icons, tax number or app buttons gets no empty padded band.
+  const showBottom = hasPayments || hasTax || hasApps;
 
   return (
     <footer className="tallah-footer" suppressHydrationWarning>
@@ -115,17 +121,21 @@ export function TallahFooter() {
         {newsletter.show && <Newsletter url={newsletter.url} />}
       </div>
 
-      <div className="tallah-footer__bottom">
-        <div className="container tallah-footer__bottom-inner">
-          <div className="tallah-footer__payments">
-            <SallaPayments />
+      {showBottom && (
+        <div className="tallah-footer__bottom">
+          <div className="container tallah-footer__bottom-inner">
+            {hasPayments && (
+              <div className="tallah-footer__payments">
+                <SallaPayments />
+              </div>
+            )}
+            <TaxNumber />
+            {hasApps && (
+              <div className="tallah-footer__apps">{isClient && <SallaAppsIcons apps={store.apps} />}</div>
+            )}
           </div>
-          <TaxNumber />
-          {hasApps && (
-            <div className="tallah-footer__apps">{isClient && <SallaAppsIcons apps={store.apps} />}</div>
-          )}
         </div>
-      </div>
+      )}
 
       <HookSlot name="footer:end" />
     </footer>

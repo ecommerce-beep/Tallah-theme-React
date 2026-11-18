@@ -1,0 +1,46 @@
+/*
+  The product page as it first paints, before the slider and the SDK widgets are up. Imported by the critical
+  product CSS and by `tallah-pdp.scss`, so the server's placeholders take the size of what replaces them.
+*/
+
+/* The gallery is a 674px frame at every width (`tallah-pdp.scss`); its skeleton and the SSR poster were square. */
+.tallah-pdp .product-gallery {
+  .s-skeleton-slider-image {
+    height: 674px !important;
+    aspect-ratio: auto;
+  }
+
+  .product-gallery__poster {
+    height: 674px;
+  }
+}
+
+/*
+  Below `lg` the thumbnails stand in a row under the frame: 16px gap + one square thumb, four across (six from `sm`),
+  as in `tallah-pdp.scss`. A percentage margin is of the gallery's width, so it follows the thumb's size.
+  Only a gallery with thumbnails reserves it (`product-gallery--thumbs`, from `ProductGallery`).
+*/
+@media (max-width: 1023px) {
+  .tallah-pdp .product-gallery--thumbs .s-skeleton-slider {
+    margin-bottom: calc(25% + 10px);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .tallah-pdp .product-gallery--thumbs .s-skeleton-slider {
+    margin-bottom: calc(16.667% + 9.333px);
+  }
+}
+
+/*
+  `SallaInstallment` is client-only: the server paints a 100px card in its place, and the widget (or nothing) replaces it.
+  The wrapper (`ProductDetails`) takes no box of its own. A store whose `settings.installments` is an empty array has no
+  provider, so no widget will come and the placeholder is hidden; any other value keeps it, since providers may follow.
+*/
+.tallah-pdp .product-details__installment {
+  display: contents;
+}
+
+.tallah-pdp .product-details__installment--none .s-skeleton-card {
+  display: none;
+}

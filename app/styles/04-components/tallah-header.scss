@@ -23,6 +23,11 @@
   }
 }
 
+/* `<SallaSearch>` is a modal and takes no room once loaded, but its server skeleton (36px) sat in the header's flow until hydration. */
+.tallah-header .s-skeleton-search {
+  display: none;
+}
+
 /* `#mainnav`: the announcement strip, the contacts bar and the main bar. */
 .tallah-header__nav {
   @apply relative;
@@ -87,6 +92,22 @@
 .tallah-topnav__menu {
   @apply flex flex-1 justify-start;
   color: var(--color-background);
+}
+
+/* While `<salla-menu>` hydrates its server skeleton is three stacked 18px bars (70px), which held the 32px bar open and
+   pulled the page up 38px when the menu loaded. The bar is one row of links, so the placeholder is one short line (as
+   in `header.scss`). Only the skeleton is sized: the menu itself, its dropdowns and focus outlines are not clipped. */
+.tallah-topnav__menu .s-skeleton-menu-columns {
+  @apply flex items-center;
+
+  .s-skeleton-wrapper {
+    width: 16rem !important;
+    height: 0.75rem !important;
+
+    &:not(:first-child) {
+      @apply hidden;
+    }
+  }
 }
 
 .tallah-topnav__contacts {
@@ -306,7 +327,10 @@
 }
 
 .tallah-menu__tab {
-  @apply relative flex h-full cursor-pointer items-center;
+  @apply relative flex h-full items-center;
+  /* Not `@apply cursor-pointer`: that utility also carries the theme's `.cursor-pointer * { pointer-events: none }`,
+     which made the link inside unclickable (clicks landed on the `li`, which does not navigate). */
+  cursor: pointer;
 }
 
 .tallah-menu__link {
@@ -468,6 +492,12 @@
   @apply h-5 w-5 shrink-0;
 }
 
+/* The icon is the submit button; it keeps the icon's own box, so the field looks as before. */
+.tallah-search__submit {
+  @apply flex shrink-0 items-center justify-center bg-transparent p-0;
+  cursor: pointer;
+}
+
 .tallah-search__input {
   @apply w-full border-0 border-b border-gray-300 bg-transparent focus:border-b focus:border-gray-500 focus:outline-none focus:ring-0;
 }
@@ -616,86 +646,87 @@
 }
 
 .tallah-mobile-menu__panel {
-  @apply absolute top-0 z-30 flex max-h-[calc(100vh-56px)] flex-col overflow-hidden bg-white text-zinc-800;
+  /* As tall as its list, up to the dimmed layer's height (which already starts under the bar). */
+  @apply absolute top-0 z-30 flex max-h-full flex-col overflow-hidden bg-white text-zinc-800;
   inset-inline: 0;
 }
 
-.tallah-mobile-menu__tabs {
-  @apply flex w-full justify-around gap-4 overflow-x-auto border-y px-4 py-3 text-sm font-semibold;
+.tallah-mobile-menu__content {
+  @apply flex-1 overflow-y-auto overscroll-contain;
   scrollbar-width: none;
+}
 
-  button {
-    @apply relative flex items-center justify-center gap-2 whitespace-nowrap border-b-2 border-transparent px-2 py-1 text-gray-500;
+.tallah-mobile-menu__list {
+  @apply m-0 list-none p-0;
+}
 
-    &.is-active {
-      @apply border-black text-black;
+.tallah-mobile-menu__item {
+  @apply border-b border-zinc-200;
+}
+
+.tallah-mobile-menu__row {
+  @apply flex min-h-12 items-stretch justify-between text-sm font-medium leading-6 tracking-[0.4px] text-[#27272A];
+
+  a {
+    @apply flex flex-1 items-center px-5 py-3;
+
+    &:hover,
+    &:active {
+      @apply bg-zinc-50;
     }
   }
 }
 
-.tallah-mobile-menu__content {
-  @apply flex flex-1 flex-col overflow-y-auto p-5;
-  scrollbar-width: none;
-}
+/* A 48px square beside the link: toggling never navigates, navigating never toggles. */
+.tallah-mobile-menu__toggle {
+  @apply inline-flex w-12 shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent text-[#27272A];
+  border-inline-start: 1px solid #e4e4e7;
 
-.tallah-mobile-menu__row {
-  @apply mb-4 flex items-center justify-between gap-2 py-3 text-sm font-medium leading-6 tracking-[0.4px] text-[#27272A];
-  padding-left: 0.5rem;
-
-  a {
-    @apply flex-1;
+  svg {
+    @apply transition-transform duration-200;
   }
 
-  button {
-    @apply inline-flex cursor-pointer items-center justify-center;
-  }
-}
-
-.tallah-mobile-menu__sub {
-  @apply absolute inset-0 overflow-y-auto transition-transform duration-500 ease-in-out;
-  background: var(--th-bg);
-  transform: translateX(-100%);
-  visibility: hidden;
-  scrollbar-width: none;
-
-  [dir='ltr'] & {
-    transform: translateX(100%);
+  [dir='rtl'] & svg {
+    transform: rotate(180deg);
   }
 
-  &.is-open {
-    transform: none;
-    visibility: visible;
+  &[aria-expanded='true'] svg,
+  [dir='rtl'] &[aria-expanded='true'] svg {
+    transform: rotate(90deg);
   }
 
-  ul {
-    @apply flex flex-col items-start self-stretch px-5 py-2;
-  }
-
-  li {
-    @apply flex flex-col items-start gap-[10px] self-stretch py-3 text-sm font-medium leading-6 tracking-[0.4px] text-[#27272A];
-    padding-left: 0.5rem;
+  &:hover,
+  &:active {
+    @apply bg-zinc-50;
   }
 }
 
-.tallah-mobile-menu__back {
-  @apply flex w-full cursor-pointer items-center gap-2 self-stretch border-y px-4 py-3 text-sm font-semibold text-gray-600;
+/* Children sit under their parent, one step in from the inline-start edge. */
+.tallah-mobile-menu__children {
+  @apply bg-zinc-50;
 
-  span {
-    @apply text-sm font-medium leading-6 tracking-[0.4px] text-[#27272A];
+  .tallah-mobile-menu__item:last-child {
+    @apply border-b-0;
   }
-}
 
-.tallah-mobile-menu__images {
-  @apply grid grid-cols-3 gap-4 p-5;
+  .tallah-mobile-menu__row a {
+    padding-inline-start: 2.25rem;
+  }
 
-  img {
-    @apply h-full w-full object-cover;
+  .tallah-mobile-menu__children .tallah-mobile-menu__row a {
+    padding-inline-start: 3.25rem;
+  }
+
+  .tallah-mobile-menu__toggle,
+  .tallah-mobile-menu__row a:hover,
+  .tallah-mobile-menu__row a:active {
+    @apply bg-transparent;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tallah-search__panel,
-  .tallah-mobile-menu__sub,
+  .tallah-mobile-menu__toggle svg,
   .tallah-header__logo--primary,
   .tallah-header__logo--secondary,
   .tallah-menu__underline {

@@ -62,25 +62,49 @@
 
 .tallah-pdp__wishlist {
   @apply flex flex-1 items-center justify-center gap-2 border border-gray-200 bg-transparent px-4 py-3 text-sm font-medium text-primary;
+  /* the Twig's phone button is in the text color, added or not (`.mobile_buttons salla-button button`) */
+  color: var(--color-font) !important;
 
+  /* added: the text color, not red (the Twig's heart is black in every state) */
   &.is-added i {
-    @apply text-red-600;
+    color: var(--color-font);
   }
 }
 
-/* --- description / reviews tabs ---------------------------------------------- */
+/* --- description / reviews tabs: the Twig's `.s-tabs-header` / `.s-tabs-header-item` ---------------------------- */
 .tallah-tabs {
   @apply my-6;
 
   &__list {
-    @apply mb-4 flex justify-center gap-8 border-b border-gray-200;
+    @apply mb-4 flex justify-center;
+    border-bottom: 1px solid #e4e4e7;
   }
 
   &__tab {
-    @apply -mb-px border-b-2 border-transparent bg-transparent px-1 pb-3 text-xl font-medium text-gray-500 transition-colors lg:text-3xl;
+    @apply relative border-0 bg-transparent px-4 font-semibold leading-7 tracking-normal transition-colors;
+    padding-bottom: 16px;
+    font-size: clamp(1.25rem, 1.0299rem + 0.939vw, 1.875rem);
+    color: var(--color-primary);
+    opacity: 0.7;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      width: 0;
+      height: 3px;
+      transform: translateX(-50%);
+      background-color: var(--color-primary);
+      transition: all 0.3s ease-in-out;
+    }
 
     &.is-active {
-      @apply border-primary text-font;
+      opacity: 1;
+
+      &::after {
+        width: 70%;
+      }
     }
   }
 
@@ -278,9 +302,35 @@
 }
 
 @media (min-width: 641px) {
-  /* buy-now under the add button, full width (single.twig renders it as its own row) */
-  .tallah-pdp .sticky-product-bar .s-add-product-button-main {
-    @apply flex-col items-stretch gap-3;
+  /* buy-now under the add button, across the whole row (single.twig renders it as its own full-width row):
+     the button's wrappers step aside so its two parts take places in the bar's grid. */
+  .tallah-pdp .sticky-product-bar {
+    > div:has(> .sticky-product-bar__btn),
+    .sticky-product-bar__btn,
+    .s-add-product-button-main {
+      display: contents;
+    }
+
+    .s-add-product-button-main > salla-button {
+      grid-column: 1;
+      grid-row: 2;
+      justify-self: stretch;
+      display: block;
+      width: 100% !important;
+
+      .s-button-element {
+        width: 100% !important;
+      }
+    }
+
+    .s-add-product-button-main > salla-mini-checkout-widget {
+      grid-column: 1 / -1;
+      grid-row: 3;
+      justify-self: stretch;
+      display: block;
+      width: 100%;
+      max-width: none;
+    }
   }
 }
 
@@ -309,34 +359,125 @@
   }
 }
 
-/* --- gallery: a vertical thumbnail column beside the image from `lg` (thumbs-config in ProductGallery) --- */
-@media (min-width: 1024px) {
-  .tallah-pdp .product-gallery salla-slider.details-slider {
-    display: flex;
-    flex-direction: row-reverse; /* thumbs first on the inline-start side, as in single.twig */
-    align-items: flex-start;
-    gap: 0.75rem;
+/* --- gallery: the Twig's `AR_single.scss` + `slider.scss` ---------------------------------------------------------
+   A 674px-tall frame at every width: a white slide with a 6px corner and a hairline ring, the image `contain`ed in it
+   (the `slider_background_size` setting), no border or rounding on the container. From `lg` the thumbnails stand in a
+   72px vertical column beside it; below, in a row under it. */
+.tallah-pdp salla-slider.details-slider {
+  .s-slider-container {
+    height: 674px !important;
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+  }
 
-    .s-slider-container {
-      flex: 1 1 0;
-      min-width: 0;
+  /* the image track only: the thumbnails' own track keeps the height its slides give it */
+  .s-slider-container:not(.s-slider-thumbs-container) .swiper-wrapper,
+  .swiper-autoheight:not(.s-slider-thumbs-container) .swiper-wrapper {
+    height: 674px !important;
+  }
+
+  .swiper-slide {
+    height: 674px !important;
+    border-radius: 0.375rem;
+  }
+
+  /* thumbnails: square-cornered, the ones not showing veiled (the Twig's `::before` film) */
+  .s-slider-thumbs .s-slider-thumbs-container .swiper-slide {
+    border-radius: 0;
+
+    img {
+      border-radius: 0;
     }
 
-    .s-slider-thumbs {
-      flex: 0 0 5rem;
-      width: 5rem;
-      /* the vertical Swiper needs a bounded height; keep it to about the image */
-      max-height: min(46rem, 75vh);
-      overflow: hidden;
+    /* no ring round a thumbnail, active or not (the Twig drops the theme's rounded one) */
+    &::after {
+      border-radius: 0;
+      --tw-ring-shadow: none;
+    }
+
+    &.swiper-slide-thumb-active::after {
+      box-shadow: none !important;
+    }
+
+    &:not(.swiper-slide-thumb-active)::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background: rgb(255 255 255 / 35%);
+      backdrop-filter: saturate(120%) blur(1px);
+      opacity: 0.5;
+      pointer-events: none;
     }
   }
 }
 
-/* phones: thumbs show under the image (single.twig) instead of the dots-only pill from `slider.scss` */
-@media (max-width: 767px) {
-  .tallah-pdp .product-gallery salla-slider.details-slider .s-slider-thumbs {
+@media (min-width: 1024px) {
+  .tallah-pdp salla-slider.details-slider {
+    display: flex;
+    flex-direction: row-reverse; /* thumbs first on the inline-start side, as in single.twig */
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 10px;
+
+    .s-slider-container {
+      flex: none;
+      width: 100% !important;
+      /* the slider's 16px side margins become the Twig's: none towards the thumbs, 32px on the far side */
+      margin-inline: 0 32px;
+    }
+
+    &:has(.s-slider-thumbs) .s-slider-container {
+      width: calc(100% - 114px) !important;
+    }
+
+    &:not(:has(.s-slider-thumbs)) .s-slider-container {
+      margin-inline: 0;
+    }
+
+    .s-slider-thumbs {
+      flex: none;
+      width: 72px !important;
+      height: 674px;
+      margin-top: 0 !important;
+      overflow: hidden;
+    }
+
+    .s-slider-thumbs .swiper-wrapper {
+      flex-direction: column;
+    }
+
+    /* five to a column with 8px between: (674 − 4 × 8) / 5 */
+    .s-slider-thumbs .s-slider-thumbs-container .swiper-slide {
+      width: 100% !important;
+      max-width: none;
+      flex: none;
+      height: calc((674px - 32px) / 5) !important;
+      margin-inline: 0;
+    }
+  }
+}
+
+/* below `lg` the thumbs run in a row under the image, square, four (six from `sm`) across */
+@media (max-width: 1023px) {
+  .tallah-pdp salla-slider.details-slider .s-slider-thumbs {
     display: block;
-    margin-top: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .tallah-pdp salla-slider.details-slider .s-slider-thumbs .s-slider-thumbs-container .swiper-slide {
+    width: calc((100% - 24px) / 4) !important;
+    max-width: none;
+    flex: none;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .tallah-pdp salla-slider.details-slider .s-slider-thumbs .s-slider-thumbs-container .swiper-slide {
+    width: calc((100% - 40px) / 6) !important;
   }
 }
 
@@ -349,8 +490,67 @@
     @apply pb-4 text-base font-semibold leading-6;
   }
 
+  /* the Twig's `.side_products`: four small cards in a row, 12px apart, the image fixed at 171px and the card
+     stripped of its badge, rating, options, hover panel and category */
+  .scroll-carousel__track {
+    gap: 12px;
+  }
+
   .s-products-carousel__slide {
-    flex: 0 0 62%;
+    flex: 0 0 calc((100% - 36px) / 4);
+  }
+
+  .scroll-carousel__controls,
+  .carousel-dots {
+    display: none;
+  }
+
+  .s-product-card-promotion-title,
+  .s-product-card-rating,
+  .flex-action,
+  .card-floating-btn,
+  .s-product-card-content-options,
+  .s-product-card-content-category {
+    display: none !important;
+  }
+
+  .s-product-card-entry {
+    gap: 10px;
+    max-height: 267px !important;
+  }
+
+  .s-product-card-vertical .s-product-card-image {
+    min-height: 171px !important;
+    max-height: 171px !important;
+    height: 171px !important;
+  }
+
+  .s-product-card-content-title {
+    font-size: 14px;
+    line-height: 24px;
+  }
+
+  .s-product-card-price,
+  .product-price h4 {
+    font-size: 14px;
+  }
+
+  /* the add button is a round 32px chip over the image's bottom corner (the Twig's `.in_single`) */
+  .tallah-card__actions {
+    position: absolute;
+    top: calc(171px - 32px - 10px);
+    right: 0;
+    left: auto;
+    width: auto;
+    display: flex !important;
+    justify-content: center;
+  }
+
+  .tallah-card__actions .tallah-card__add {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #ffffffcc;
   }
 }
 
@@ -364,3 +564,166 @@
     @apply z-[2];
   }
 }
+
+/* --- the buy box: the Twig's square controls (AR_single.scss `.single ...`) --------------------------------------
+   Add to cart and the quantity are 48px, square, the buy-now widget 42px; the pills come from the Raed-era rules in
+   `product.scss` and `quantity-stepper.scss`. */
+.tallah-pdp .main-content {
+  salla-add-product-button .s-button-element {
+    height: 48px !important;
+    border-radius: 0;
+  }
+
+  salla-quantity-input {
+    height: 48px;
+    padding: 0;
+    width: fit-content;
+  }
+
+  .s-quantity-input .s-quantity-input-container {
+    @apply justify-between gap-0 rounded-none bg-transparent p-0;
+    height: 48px;
+    width: 138px;
+    max-width: none;
+    border: 0.8px solid var(--color-primary);
+  }
+
+  .s-quantity-input .s-quantity-input-button {
+    @apply rounded-none bg-transparent;
+    width: 44px;
+    height: 46px;
+
+    svg {
+      fill: var(--color-font);
+      color: var(--color-font);
+    }
+  }
+
+  .s-quantity-input .s-quantity-input-input {
+    @apply bg-transparent font-bold;
+    color: var(--color-primary);
+  }
+
+  .s-add-product-button-main .s-add-product-button-mini-checkout {
+    --salla-fast-checkout-button-border-radius: 2px;
+    --salla-fast-checkout-button-height: 2.625rem;
+    --salla-fast-checkout-button-width: 100%;
+  }
+
+  .s-payments-list-item {
+    background-color: transparent;
+    border-radius: 12px;
+    height: 50px;
+    width: 58px;
+  }
+}
+
+/* --- product options: the label over its choices (AR_single.scss `.s-product-options-option`) ----------------------- */
+.tallah-pdp .s-product-options-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.tallah-pdp .s-product-options-option-content {
+  width: 100%;
+}
+
+.tallah-pdp .s-product-options-option-label {
+  b {
+    display: block;
+    color: var(--color-font);
+    font-size: 16px;
+    font-weight: 300;
+  }
+
+  /* the "required" star and the hint are not shown */
+  small,
+  span {
+    display: none;
+  }
+}
+
+/* --- size choices as buttons: the Twig's .custom-radio-options (AR_single.scss) ------------------------------------
+   SingleOptionButtons draws them; the select they stand for stays in the page, out of sight, so the widget and its
+   required check keep working on it. */
+.tallah-pdp [data-option-type='single-option'] select[data-tallah-buttons] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tallah-size-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  justify-content: start;
+
+  @media (max-width: 768px) {
+    gap: 10px;
+  }
+}
+
+.tallah-size-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 1px solid gray;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-font);
+  font-size: clamp(0.875rem, 0.831rem + 0.1878vw, 1rem);
+  line-height: inherit;
+  cursor: pointer;
+  transition: all 0.4s;
+
+  &.is-active {
+    border-color: var(--color-font);
+    background-color: var(--color-primary);
+    color: var(--color-background);
+    font-weight: 500;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: -10%;
+      width: 140%;
+      height: 1.5px;
+      background-color: #000000c5;
+      transform: rotate(-35deg);
+    }
+  }
+}
+
+/* --- the title heart: the Twig's pair of SVG hearts (single.twig / AR_single.scss) ------------------------------------
+   One shows for each state, both in the text color, the button in the primary color; nothing here is red. */
+.tallah-pdp .btn--wishlist .s-button-text svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--color-font);
+}
+
+.tallah-pdp .btn--wishlist.not-added .filled,
+.tallah-pdp .btn--wishlist.is-added .not_filled {
+  display: none;
+}
+
+@import './tallah-pdp-first-screen';

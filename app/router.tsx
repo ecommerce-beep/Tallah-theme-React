@@ -6,7 +6,7 @@ import {
   registerHomeComponentConfig,
   DefaultHomeComponents,
 } from '@salla.sa/twilight-theme-engine/routes/home';
-import { SliderSkeleton } from '@salla.sa/twilight-components-react';
+import { ProductsSliderSkeleton, SliderSkeleton } from '@salla.sa/twilight-components-react';
 import { routeTree } from './routeTree.gen';
 import {
   ArCustomTestimonials,
@@ -95,15 +95,27 @@ registerHomeComponents({
 // the literal `styleN` values; this covers the semantic `view_style`s too.
 // `custom-testimonials` gets `s-block--full-bg` so the gray band runs edge-to-edge.
 registerHomeComponentConfig({
-  // 90vh banner (100svh on phones): reserve it for a lazy placement so the page does not jump.
-  'AR-Hero-2': { height: '90vh' },
-  // Reserved heights: the special banners are 30rem / 43.75rem, the promo and products rows hold a 40.6rem image.
-  'AR-special-banner': { height: '43.75rem' },
-  'Ar-Promo-banner': { height: '45rem' },
-  'AR-Products-banner': { height: '45rem' },
+  // Lazy placements (below the first screens) hold the height they will have, per breakpoint: the `--ar-reserve-*`
+  // variables in tallah-home.scss, measured with each block loaded. One desktop height left the phone / tablet
+  // layouts (stacked, taller) to grow by 90-530px as they loaded, and the desktop promo and products rows 70px of blank.
+  'AR-Hero-2': { height: 'var(--ar-reserve-hero2)' },
+  'AR-special-banner': { height: 'var(--ar-reserve-special)' },
+  'Ar-Promo-banner': { height: 'var(--ar-reserve-promo)' },
+  'AR-Products-banner': { height: 'var(--ar-reserve-products-banner)' },
   'AR-Hero-section': { height: '90vh' },
-  'AR-Custom-testimonials': { height: '36rem' },
+  // Measured with the cards loaded: 713px at 1440, 753 at 768, 733 at 390 (the quote wraps differently). At 36rem
+  // 137-177px of the page was added as the section loaded.
+  'AR-Custom-testimonials': { height: '46rem' },
   AR_our_products: { height: '40rem' },
+  // The engine's own config for this block, restated (a theme config replaces it), plus a class on the "buy again"
+  // block: the engine's `ReorderProducts`, shown to signed-in customers, most of whom have no past order, so it ends
+  // up empty. `.s-block--reorder` (home-blocks.scss) keeps it from reserving 450px+ that is taken back after load.
+  'products-slider': {
+    height: '450px',
+    placeholder: <ProductsSliderSkeleton />,
+    className: (data) =>
+      `s-block s-block--products-slider${(data.products as { source?: string } | undefined)?.source === 'reorder' ? ' s-block--reorder' : ''}`,
+  },
   'featured-products': featuredProductsConfig,
   'featured-products-special-offer': featuredProductsConfig,
   'featured-products-special-product': featuredProductsConfig,

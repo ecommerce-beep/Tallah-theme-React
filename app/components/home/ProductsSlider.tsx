@@ -3,10 +3,38 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from '@salla.sa/twilight-theme-engine/i18n';
 import { product, type ProductsListSource } from '@salla.sa/twilight-theme-engine/api/product';
 import { Link } from '@salla.sa/twilight-theme-engine/common';
-import { ProductsListSkeleton } from '@salla.sa/twilight-components-react';
 import { ScrollCarousel } from '../common';
 import { ProductCard, TallahProductCard } from '../product';
 import { blockLimit } from '../../lib/blockLimit';
+
+/** How many placeholder cards the loading row holds: more than any breakpoint shows, so the row is full. */
+const SKELETON_SLIDES = 5;
+
+/**
+ * The loading state, in the carousel's own shape: the same slides in one row (the SDK's `ProductsListSkeleton` is a
+ * vertical grid, 2000px+ tall on a phone, which then collapsed to a row of cards). The card pieces are the ones
+ * `AR_our_products` shows, measured from the TALLAH card.
+ */
+function ProductsCarouselSkeleton() {
+  return (
+    <div className="scroll-carousel" aria-hidden="true" data-testid="products-carousel-skeleton">
+      <div className="scroll-carousel__track" style={{ overflowX: 'hidden' }}>
+        {Array.from({ length: SKELETON_SLIDES }, (_, index) => (
+          <div key={index} className="s-products-carousel__slide">
+            <div className="ar-our-products__skeleton-image" />
+            <div className="ar-our-products__skeleton-content">
+              <span className="ar-our-products__skeleton-title" />
+              <div className="ar-our-products__skeleton-sub">
+                <span className="ar-our-products__skeleton-price" />
+                <span className="ar-our-products__skeleton-button" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export interface ProductsSliderProps {
   data: {
@@ -87,6 +115,9 @@ export function ProductsSlider({ data, onResolve, tallahCards }: ProductsSliderP
   // leave a lone title or a broken carousel, e.g. a product with no related
   // products.
   if (isError || (isSuccess && items?.length === 0)) return null;
+  // The 'buy again' list is the customer's own and often empty: nothing (title included) until it is known not to be,
+  // so there is no placeholder to take back.
+  if (source === 'reorder' && !isSuccess) return null;
 
   const { title } = data;
   const displayAll = data.display_all_url;
@@ -107,7 +138,7 @@ export function ProductsSlider({ data, onResolve, tallahCards }: ProductsSliderP
       )}
 
       {!isSuccess ? (
-        <ProductsListSkeleton />
+        <ProductsCarouselSkeleton />
       ) : (
         <ScrollCarousel
           prevLabel={t('blocks.home.reviews_prev', 'Previous')}

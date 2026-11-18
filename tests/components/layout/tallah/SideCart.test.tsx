@@ -4,6 +4,7 @@ import { act, fireEvent, render, renderHook, waitFor } from '@testing-library/re
 import { SideCart, useSideCart } from '../../../../app/components/layout/tallah/SideCart';
 
 const state = {
+  taxable: false,
   cartId: 7 as number | null,
   cart: null as Record<string, unknown> | null,
   invalidated: [] as unknown[],
@@ -33,7 +34,10 @@ vi.mock('@salla.sa/twilight-theme-engine/i18n', () => ({
   useTranslation: () => ({ t: (_k: string, fb?: string) => fb ?? _k }),
 }));
 vi.mock('@salla.sa/twilight-theme-engine/providers', () => ({
-  useTwilight: () => ({ currency: { symbol: 'SAR' } }),
+  useTwilight: () => ({
+    currency: { symbol: 'SAR' },
+    store: { settings: { tax: { taxable_prices_enabled: state.taxable } } },
+  }),
 }));
 vi.mock('@salla.sa/twilight-theme-engine/hooks/useMoney', () => ({
   useMoney: () => ({ format: (n: number) => `${n} SAR` }),
@@ -73,6 +77,7 @@ const sallaCart = { addCoupon: vi.fn(), deleteCoupon: vi.fn() };
 
 beforeEach(() => {
   state.cartId = 7;
+  state.taxable = false;
   state.cart = cart();
   state.invalidated = [];
   sallaCart.addCoupon.mockReset().mockResolvedValue({});
@@ -102,19 +107,35 @@ describe('SideCart', () => {
   it('lists the rows with the product count, the totals and the two buttons', () => {
     const { getAllByTestId, container, getByText } = setup();
     expect(getAllByTestId('cart-item').map((n) => n.textContent)).toEqual(['Chair', 'Table']);
-    expect(container.querySelector('h2')?.textContent).toContain('(3)');
+    expect(container.querySelector('h2')?.textContent).toContain('(3 items)');
     const totals = container.querySelector('.tallah-sidecart__totals')!.textContent!;
     expect(totals).toContain('300 SAR');
     expect(totals).toContain('20 SAR');
     expect(totals).toContain('280 SAR');
-    expect(getByText('View cart').getAttribute('href')).toBe('/cart');
+    expect(getByText('Go to cart').getAttribute('href')).toBe('/cart');
   });
 
-  it('shows an empty state with no totals', () => {
+  it('shows an empty state with the summary rows present but their values blank, as the Twig', () => {
     state.cart = cart({ count: 0, items: [] });
     const { container } = setup();
     expect(container.querySelector('.tallah-sidecart__empty')).not.toBeNull();
-    expect(container.querySelector('.tallah-sidecart__totals')).toBeNull();
+    expect([...container.querySelectorAll('.tallah-sidecart__totals dt')].map((n) => n.textContent)).toHaveLength(3);
+    expect([...container.querySelectorAll('.tallah-sidecart__totals dd')].map((n) => n.textContent)).toEqual(['', '', '']);
+  });
+
+  it('notes that tax is included under the total only when the store prices are taxable', () => {
+    const off = setup();
+    expect(off.container.querySelector('.tallah-sidecart__final small')).toBeNull();
+    off.unmount();
+    state.taxable = true;
+    const on = setup();
+    expect(on.container.querySelector('.tallah-sidecart__final small')?.textContent).toContain('Tax included');
+  });
+
+  it('counts a single product in the singular', () => {
+    state.cart = cart({ count: 1, items: [{ id: '1', product_name: 'Chair' }] });
+    const { container } = setup();
+    expect(container.querySelector('h2')?.textContent).toContain('(1 item)');
   });
 
   it('shows the free-shipping progress, with the amount in the message and no markup', () => {
@@ -219,6 +240,15 @@ describe('useSideCart', () => {
     expect([...events.handlers.values()].some((set) => set.size > 0)).toBe(true);
     unmount();
     expect([...events.handlers.values()].every((set) => set.size === 0)).toBe(true);
+  });
+
+  it('asks for the cart id again once the SDK is ready (a page that asked earlier got null)', async () => {
+    const events = bus();
+    (window as unknown as { salla: unknown }).salla = { event: events, onReady: () => Promise.resolve() };
+    renderHook(() => useSideCart(true));
+    await waitFor(() =>
+      expect(state.invalidated).toContainEqual(expect.objectContaining({ queryKey: ['currentId'] }))
+    );
   });
 
   it('binds nothing and returns no cart while disabled', () => {

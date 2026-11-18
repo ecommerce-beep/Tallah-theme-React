@@ -1,0 +1,48 @@
+/*
+  The header's cart button and the side cart drawer as they first paint: closed. The drawer is in the page from the
+  server on, so without these rules (they were only in the full sheet, which arrives after the first paint) its whole
+  markup, with the coupon field, showed over the hero until the sheet was up. Imported by the critical home and product
+  CSS and by `tallah-sidecart.scss`, so the closed and the open drawer share one set of rules.
+*/
+.tallah-header__cart {
+  @apply relative;
+}
+
+.tallah-header__cart-count {
+  @apply absolute -top-2.5 flex h-5 w-5 select-none items-center justify-center rounded-full bg-red-500 text-xs;
+  right: 0.5rem; /* `right-2`, physical, as in header.twig */
+  color: var(--color-background);
+}
+
+.tallah-sidecart {
+  @apply invisible fixed inset-0;
+  z-index: 101;
+  transition: visibility 0s linear 0.3s;
+
+  &.is-open {
+    @apply visible;
+    transition-delay: 0s;
+  }
+}
+
+.tallah-sidecart__backdrop {
+  @apply absolute inset-0 border-0 bg-black/50 p-0 opacity-0 transition-opacity duration-300;
+
+  .is-open > & {
+    @apply opacity-100;
+  }
+}
+
+.tallah-sidecart__panel {
+  @apply absolute top-0 flex h-full w-full flex-col bg-white text-zinc-800 transition-transform duration-300 md:w-[437px];
+  inset-inline-start: 0;
+  transform: translateX(100%);
+
+  [dir='ltr'] & {
+    transform: translateX(-100%);
+  }
+
+  .is-open > & {
+    transform: none;
+  }
+}

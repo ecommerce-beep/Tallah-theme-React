@@ -214,3 +214,38 @@ describe('AddToCartForm sticky bar when sold out', () => {
     expect(bar(container).classList.contains('sticky-product-bar--sold-out')).toBe(false);
   });
 });
+
+describe('AddToCartForm product note', () => {
+  it('offers a note field only to a product that takes one', () => {
+    const none = render(<AddToCartForm product={makeProduct()} />);
+    expect(none.container.querySelector('textarea[name="notes"]')).toBeNull();
+    none.unmount();
+    const withNote = render(<AddToCartForm product={makeProduct({ can_add_note: true })} />);
+    expect(withNote.container.querySelector('textarea[name="notes"]')).not.toBeNull();
+  });
+
+  it('submits what was typed: the note is in the form data the cart request is built from, even with its panel closed', () => {
+    const onSubmit = vi.fn();
+    (window as unknown as { salla: unknown }).salla = { form: { onSubmit }, product: { getPrice: vi.fn() } };
+    const { container } = render(<AddToCartForm product={makeProduct({ can_add_note: true })} />);
+    const note = container.querySelector<HTMLTextAreaElement>('textarea[name="notes"]')!;
+    // The panel is a closed collapse until the customer opens it; a closed panel must not drop the field.
+    expect(note.closest('.collapse-content')?.classList.contains('is-closed')).toBe(true);
+    fireEvent.change(note, { target: { value: 'ملاحظة للتغليف\nسطر ثانٍ' } });
+
+    fireEvent.submit(container.querySelector('form')!);
+
+    expect(onSubmit).toHaveBeenCalledOnce();
+    const [action, event] = onSubmit.mock.calls[0] as [string, { target: HTMLFormElement; currentTarget: HTMLFormElement }];
+    expect(action).toBe('cart.addItem');
+    const form = (event.currentTarget ?? event.target) as HTMLFormElement;
+    const data = new FormData(form);
+    expect(data.get('notes')).toBe('ملاحظة للتغليف\nسطر ثانٍ');
+    expect(data.get('id')).toBe('266863684');
+  });
+
+  it('keeps the note the product already carries as the field\x27s starting text', () => {
+    const { container } = render(<AddToCartForm product={makeProduct({ can_add_note: true, notes: 'saved earlier' })} />);
+    expect(container.querySelector<HTMLTextAreaElement>('textarea[name="notes"]')!.value).toBe('saved earlier');
+  });
+});

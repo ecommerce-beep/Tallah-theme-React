@@ -267,6 +267,108 @@ function CartItemWishlist({ productId }: { productId: number }) {
   );
 }
 
+/**
+ * The customer's note for this line: shown under the name, and editable. A line carries one note, which Salla keeps on the
+ * line itself (the `notes` of `cart.updateItem`); an edit posts the item form, as the quantity does, with the new text.
+ * It reads as saved only once the request has gone through: the row then shows what the refetched cart holds.
+ * Offered to a product that takes notes, and to any line that already has one (so it can be changed or cleared).
+ */
+function CartItemNote({
+  item,
+  formRef,
+  onSaved,
+}: {
+  item: CartItemType;
+  formRef: React.RefObject<HTMLFormElement | null>;
+  onSaved?: () => void;
+}) {
+  const { t } = useTranslation();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(item.notes ?? '');
+  const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  // Not mid-edit: follow what the cart holds.
+  useEffect(() => {
+    if (!editing) setDraft(item.notes ?? '');
+  }, [item.notes, editing]);
+
+  const editable = Boolean(item.can_add_note) || Boolean(item.notes);
+  if (!editable) return null;
+
+  const save = async () => {
+    if (saving) return;
+    const form = formRef.current;
+    // The whole item form, so the options and quantity go with it (the API rejects an update without the options).
+    if (form && !form.reportValidity()) return;
+    const payload = form ? new FormData(form) : new FormData();
+    if (!form) payload.set('id', String(item.id));
+    payload.set('notes', draft.trim());
+    setSaving(true);
+    setFailed(false);
+    try {
+      await window.salla?.cart.updateItem(payload);
+      setEditing(false);
+      onSaved?.();
+    } catch {
+      setFailed(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div className="cart-item__note-editor" data-testid="cart-item-note-editor">
+        <textarea
+          className="cart-item__note-input"
+          aria-label={t('pages.products.add_note', 'Add a note')}
+          placeholder={t('pages.products.notes_placeholder', 'Write your note')}
+          value={draft}
+          rows={3}
+          disabled={saving}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+        {failed && (
+          <p role="alert" className="cart-item__note-error">
+            {t('pages.cart.note_failed', 'The note could not be saved')}
+          </p>
+        )}
+        <div className="cart-item__note-actions">
+          <button type="button" className="cart-item__note-save" onClick={save} disabled={saving} aria-busy={saving}>
+            {t('pages.cart.note_save', 'Save')}
+          </button>
+          <button
+            type="button"
+            className="cart-item__note-cancel"
+            disabled={saving}
+            onClick={() => {
+              setEditing(false);
+              setFailed(false);
+              setDraft(item.notes ?? '');
+            }}
+          >
+            {t('pages.cart.note_cancel', 'Cancel')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="cart-item__note-wrap">
+      {item.notes ? (
+        <p className="cart-item__note" data-testid="cart-item-note">
+          <span className="cart-item__note-label">{t('pages.cart.item_note', 'Note')}:</span> {item.notes}
+        </p>
+      ) : null}
+      <button type="button" className="cart-item__note-edit" onClick={() => setEditing(true)}>
+        {item.notes ? t('pages.cart.note_edit', 'Edit note') : t('pages.products.add_note', 'Add a note')}
+      </button>
+    </div>
+  );
+}
+
 export function CartItem({ item, isFirst = false, onMutated }: CartItemProps) {
   const { t } = useTranslation();
   const { format } = useMoney();
@@ -328,6 +430,9 @@ export function CartItem({ item, isFirst = false, onMutated }: CartItemProps) {
     <form ref={formRef} onChange={handleChange} id={`item-${item.id}`}>
       <section className="cart-item relative">
         <input type="hidden" name="id" value={item.id} />
+        {/* The API clears a line's note on any update that does not send it (checked against the live cart: a quantity
+            change without `notes` sets it to null), so every update of this form carries the note it already has. */}
+        {item.notes ? <input type="hidden" name="notes" value={item.notes} readOnly /> : null}
 
         <div className="cart-item__row">
           <div className="cart-item__main">
@@ -353,6 +458,8 @@ export function CartItem({ item, isFirst = false, onMutated }: CartItemProps) {
 
               {/* phones: the price sits under the name; from `md` it moves to the controls column */}
               <CartItemPrice item={item} className="cart-item__price--mobile" />
+
+              <CartItemNote item={item} formRef={formRef} onSaved={onMutated} />
             </div>
           </div>
 

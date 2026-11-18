@@ -44,7 +44,9 @@
     overflow: hidden;
     padding: 0.25rem 0.5rem;
     border: 1px solid #9f9fa9;
+    /* Tailwind's `text-sm`, as the Twig buttons: the 1.25rem line keeps them 30px (36px from md), not the page's 26px line. */
     font-size: 0.875rem;
+    line-height: 1.25rem;
     cursor: pointer;
     transition: all 0.2s;
 
@@ -85,6 +87,8 @@
     &--size {
       width: auto;
       height: auto;
+      font-size: 0.875rem;
+      line-height: 1.25rem;
       padding: 0.25rem 0.5rem;
       border-radius: 0;
       background: transparent;

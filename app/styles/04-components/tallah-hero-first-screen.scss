@@ -1,0 +1,136 @@
+@import './tallah-ar-button';
+
+/*
+  The home hero as it first paints, before the full stylesheet and the slider are up. Imported by the critical
+  home CSS and by `tallah-home-sliders.scss`, so the first paint and the finished page lay out the same.
+*/
+
+/* The hero is the first thing on the page, under the header: no top margin from the block wrapper (the Twig has none). */
+main .s-block.s-block--AR-Hero-section {
+  margin-top: 0;
+}
+
+/*
+  The server renders `SliderSkeleton` until `salla-slider` is up, and the engine drops the block's reserved
+  `min-height` on hydration. A skeleton shorter than the banner (380px) made the block collapse to ~400px for a
+  frame and grow back, shifting everything under it. It takes the slide's own height instead: 100svh on phones, 90vh from md.
+*/
+.s-block--AR-Hero-section .s-skeleton-slider {
+  position: relative;
+  height: 100svh;
+  overflow: hidden;
+
+  @media (min-width: 768px) {
+    height: 90vh;
+  }
+}
+
+.s-block--AR-Hero-section .s-skeleton-slider-image {
+  height: 100% !important;
+}
+
+.s-block--AR-Hero-section .s-skeleton-thumbs-centered {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 1rem;
+}
+
+/*
+  The first banner's server-rendered copy (`ArHeroSection`): it stands over the skeleton, in the same box, until the slider
+  is up. It needs the slide's own rules and the button's, so they are here and in the critical CSS rather than in the
+  full sheet that arrives after hydration.
+*/
+.ar-hero-poster {
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+/*
+  The copy's image is an `<img>` (see `ArHeroSection`), so the slide's own background is dropped and the picture fills
+  the box behind the text. The phone's dark layer (the slide's `--scrim` gradient) is drawn over the image instead.
+*/
+.AR-slider-hero-section .ar-hero-poster .ar-hero-slider__banner {
+  background: none;
+}
+
+.ar-hero-poster__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+}
+
+.ar-hero-poster__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* No desktop image set: the slide shows no background from md, so neither does its copy. */
+@media (min-width: 768px) {
+  .ar-hero-poster__img--phone-only {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .ar-hero-poster .ar-hero-slider__banner--scrim::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+  }
+}
+
+.ar-btn {
+  @include ar-button(--ar-btn-color, --ar-btn-bg);
+}
+
+/* The fixed bottom bar must not sit on a button placed at the bottom (see tallah-home.scss). */
+/* Lifted with a transform, not a margin, so the centred text above it stays where the Twig puts it. */
+.AR-slider-hero-section .ar-hero-slider__cta--bottom {
+  transform: translateY(calc(-1 * var(--mobile-bottom-bar-clearance, 0px)));
+}
+
+.AR-slider-hero-section .ar-hero-slider__banner {
+  /* 100svh on phones, 90vh from md. Set here, not only as utilities: Swiper's `.swiper-slide { height: 100% }` outranks them. */
+  height: 100svh;
+  /*
+    The slide is a flex column (text block on top, a `button_bottom` CTA pushed down with `mt-auto self-center`).
+    The vendored Swiper `.swiper-slide { display: block }` lands after Tailwind's `.flex` in app.css and won, so the
+    bottom CTA stretched to the slide's full width. Same specificity as the height above, so it also outranks Swiper.
+  */
+  display: flex;
+  flex-direction: column;
+  background: var(--ar-bg-mobile, none) center center / cover no-repeat;
+  /* `py-16` both ways, as in the Twig, so the text block stays centred. */
+  padding-block: 4rem;
+
+  @media (min-width: 768px) {
+    height: 90vh;
+    background: var(--ar-bg-desktop, none) center center / cover no-repeat;
+  }
+
+  /* Mobile only: a dark layer behind text that kept its default light color. */
+  &--scrim {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), var(--ar-bg-mobile, none);
+
+    @media (min-width: 768px) {
+      background-image: var(--ar-bg-desktop, none);
+    }
+  }
+
+  /* thin (300) small text over an image is hard to read */
+  .subtext {
+    @media (max-width: 767px) {
+      font-weight: 400;
+    }
+  }
+}

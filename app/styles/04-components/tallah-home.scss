@@ -4,6 +4,31 @@
   variables, and an unset variable falls back to the theme's own look.
 */
 
+/*
+  The height each lazily rendered block holds (as its `min-height`, from `registerHomeComponentConfig` in router.tsx)
+  until it renders, so the page does not grow or shrink as the blocks load. Measured with the blocks loaded, at 390 / 768
+  / 1440px: the phone and tablet layouts stack and are much taller than the desktop ones. 40.625rem is the promo and
+  products image; `AR-Hero-2` is 100svh on phones and 90vh from md.
+*/
+:root {
+  --ar-reserve-hero2: 100svh;
+  --ar-reserve-special: 60rem; /* two 30rem banners, stacked */
+  --ar-reserve-promo: 55rem;
+  --ar-reserve-products-banner: 78rem;
+
+  @media (min-width: 768px) {
+    --ar-reserve-hero2: 90vh;
+    --ar-reserve-special: 43.75rem; /* side by side */
+    --ar-reserve-promo: 53.75rem;
+    --ar-reserve-products-banner: 71.75rem;
+  }
+
+  @media (min-width: 1024px) {
+    --ar-reserve-promo: 40.625rem; /* text beside the image */
+    --ar-reserve-products-banner: 40.625rem;
+  }
+}
+
 /* AR-Hero-2 -------------------------------------------------------------- */
 .ar-hero2__banner {
   background: var(--ar-hero-mobile-bg, none) center center / cover no-repeat;
@@ -44,36 +69,13 @@
   }
 }
 
-/* The outlined / filled button every `AR-*` banner shares; `$color` and `$bg` are the CSS
-   variables holding the merchant's text and fill colors (unset: the theme's own look). */
-@mixin ar-button($color, $bg) {
-  color: var(#{$color}, var(--color-background));
-  background-color: var(#{$bg}, var(--color-primary));
-  border: 1px solid var(#{$color}, color-mix(in srgb, var(--color-primary) 15%, white));
-
-  &:hover {
-    color: var(#{$bg}, var(--color-primary));
-    background-color: var(#{$color}, var(--color-background));
-    border-color: var(#{$bg}, var(--color-primary));
-  }
-
-  /* `transparent_button`: no fill until hover, and the border keeps the text color. */
-  &--transparent {
-    background-color: transparent;
-
-    &:hover {
-      border-color: var(#{$color}, var(--color-primary));
-    }
-  }
-}
+@import './tallah-ar-button';
 
 .ar-hero2__button {
   @include ar-button(--ar-hero-btn-color, --ar-hero-btn-bg);
 }
 
-.ar-btn {
-  @include ar-button(--ar-btn-color, --ar-btn-bg);
-}
+/* `.ar-btn` itself is with the hero banner in the file the critical CSS shares (`tallah-hero-first-screen.scss`). */
 
 /* AR-special-banner ------------------------------------------------------ */
 .ar-special__banner {
@@ -96,6 +98,8 @@
     gap: 20px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
+    /* The Twig's Swiper container is 20px wider than its wrapper at every width (-10px margin, 5px padding). */
+    margin-inline: -10px;
     padding: 5px;
 
     &.is-dragging {
@@ -108,6 +112,18 @@
     flex: 0 0 calc((100% - 20px) / 2);
     min-width: 0;
     scroll-snap-align: start;
+
+    /* Swiper's slides stretch to the tallest one; so do the cards inside them (the Twig's `-fit-height` card). */
+    display: flex;
+
+    > .s-product-card {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .s-product-card-content {
+      flex-grow: 1;
+    }
   }
 
   /* The Twig's card image box. */
@@ -118,14 +134,23 @@
   /* The engine card gives its image `flex: 1 1 0` in a height-limited card, which stretches it. */
   .s-product-card .s-product-card-image {
     flex: none !important;
-    min-height: 261px;
-    max-height: 405px;
+    /* `!important`: `.tallah-card .s-product-card-image` also sets a 19–30rem min/max-height with the same specificity. */
+    min-height: 261px !important;
+    max-height: 405px !important;
     height: clamp(16.313rem, 13.144rem + 13.5211vw, 25.313rem) !important;
   }
 
   .ar-products__arrow {
     @apply flex h-8 w-8 items-center justify-center rounded-full bg-white;
     color: var(--color-primary);
+
+    /* Inside the click-through row of arrows (`pointer-events-none`). */
+    pointer-events: auto;
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
 
     i {
       font-size: 0.875rem;
@@ -149,28 +174,11 @@
     }
   }
 
-  /* From lg the Twig's slider sits inside two 28px paddings (`lg:px-7` and `.s-products-slider-slider`), and its
-     Swiper has a -10px margin with 5px padding: 646.5px of slides at 1521px, so 313.25px each. The wrapper here
-     carries both paddings (`lg:px-[56px]`); the track keeps the margin / padding. */
-  @media (min-width: 1024px) {
-    .ar-products__track {
-      margin-inline: -10px;
-      padding: 5px;
-    }
-  }
+  /* From lg the Twig's slider sits inside two 28px paddings (`lg:px-7` and `.s-products-slider-slider`): 646.5px of
+     slides at 1521px, so 313.25px each. The wrapper here carries both (`lg:px-[56px]`); the track keeps the
+     -10px margin / 5px padding it has at every width. */
 }
 
 /* AR_our_products ----------------------------------------------------------- */
-.ar-our-products__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  @media (min-width: 1024px) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
+/* The product grid and its loading placeholder live in the file the critical CSS shares. */
+@import './tallah-products-first-screen';

@@ -12,6 +12,7 @@ import themeTranslations from 'virtual:twilight/theme-translations';
 import devSchema from 'virtual:twilight/schema';
 import { ThemeLayout } from '../components/layout/ThemeLayout';
 import { HOME_ROUTE_ID, PRODUCT_ROUTE_ID } from '../lib/routeIds';
+import { ICON_FONT_GATE } from '../lib/iconFontGate';
 import appCssUrl from '../styles/app.css?url';
 import homeCriticalCss from '../styles/critical.scss?inline';
 import productCriticalCss from '../styles/critical-product.scss?inline';
@@ -43,6 +44,8 @@ function RootComponent() {
         <meta charSet="UTF-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* Before the first paint: icons stay out of sight until their font has loaded (see `iconFontGate`). */}
+        <script dangerouslySetInnerHTML={{ __html: ICON_FONT_GATE }} />
         {/* Home and product paint from inline critical CSS; `bootClient` adds the full sheet once
             their first screen has painted. Other routes: the full sheet blocks, as before. */}
         <ThemeStylesheet href={appCssUrl} critical={CRITICAL_CSS} />

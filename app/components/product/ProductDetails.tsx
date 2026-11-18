@@ -2,6 +2,7 @@ import { Fragment, useState } from 'react';
 import { HookSlot } from '@salla.sa/twilight-theme-engine/hooks';
 import { HookName } from '@salla.sa/twilight-theme-engine/types/hooks';
 import { useTranslation } from '@salla.sa/twilight-theme-engine/i18n';
+import { useTwilight } from '@salla.sa/twilight-theme-engine/providers';
 import { getActiveCurrency } from '@salla.sa/twilight-theme-engine/api/client';
 import { useWishlist } from '@salla.sa/twilight-theme-engine/hooks/useWishlist';
 import { CurrencySymbol, Link, Image } from '@salla.sa/twilight-theme-engine/common';
@@ -11,6 +12,7 @@ import { SallaRatingStars } from '@salla.sa/twilight-components-react/rating-sta
 import { SallaSocialShare } from '@salla.sa/twilight-components-react/social-share';
 import { SallaInstallment } from '@salla.sa/twilight-components-react/installment';
 import { WishlistHeartButton } from './WishlistHeartButton';
+import { hasNoInstallmentProviders } from '../../lib/installments';
 
 interface ProductDetailsProps {
   product: Product;
@@ -36,6 +38,8 @@ export function ProductDetails({
   showTags = true,
 }: ProductDetailsProps) {
   const { t } = useTranslation();
+  const { store } = useTwilight();
+  const noInstallments = hasNoInstallmentProviders(store?.settings?.installments);
 
   // Context for all product hooks - contains product data
   const productHookContext = { product };
@@ -59,7 +63,12 @@ export function ProductDetails({
       )}
 
       <div className="mb-2 flex w-full items-center justify-between gap-4">
-        <h1 className="text-xl font-bold leading-10 text-font lg:text-[24px]">{product.name}</h1>
+        {/* A unitless 1.45 follows the size at each breakpoint (the fixed 40px was twice the 20px phone size, so a
+            long title came apart line from line); `min-h-10` keeps the one-line height, `overflow-wrap` lets a long unbroken
+            word wrap instead of widening the row over the share / wishlist icons. */}
+        <h1 className="flex min-h-10 min-w-0 items-center text-xl font-bold leading-[1.45] text-font [overflow-wrap:anywhere] lg:text-[24px]">
+          {product.name}
+        </h1>
 
         {/* share + wishlist, pulled up beside the title on the end side.
             On mobile these move to the gallery overlay bar (`ProductGallery`),
@@ -166,13 +175,16 @@ export function ProductDetails({
 
       <HookSlot name={HookName.PRODUCT_DESCRIPTION} context={productHookContext} />
 
-      <SallaInstallment
-        price={String(
-          typeof product.base_currency_price === 'object'
-            ? product.base_currency_price.amount
-            : product.base_currency_price
-        )}
-      />
+      {/* `display: contents` (tallah-pdp-first-screen.scss): the wrapper takes no room of its own. */}
+      <div className={`product-details__installment${noInstallments ? ' product-details__installment--none' : ''}`}>
+        <SallaInstallment
+          price={String(
+            typeof product.base_currency_price === 'object'
+              ? product.base_currency_price.amount
+              : product.base_currency_price
+          )}
+        />
+      </div>
     </>
   );
 }
@@ -184,7 +196,8 @@ function TitleWishlistButton({ productId }: { productId: number }) {
   return (
     <WishlistHeartButton
       productId={productId}
-      className={`btn--wishlist animated hidden sm:inline-flex ${wishlist.has(productId) ? 'is-added' : 'not-added'}`}
+      className={`btn--wishlist !text-primary animated hidden sm:inline-flex ${wishlist.has(productId) ? 'is-added' : 'not-added'}`}
+      twigIcon
       onClick={() => window.salla?.wishlist.toggle(productId)}
       ariaLabel={t('pages.products.add_to_wishlist', 'Add to wishlist')}
     />

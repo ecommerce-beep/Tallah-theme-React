@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { SallaSlider } from '@salla.sa/twilight-components-react/slider';
 import { Link } from '@salla.sa/twilight-theme-engine/common';
 import { useTranslation } from '@salla.sa/twilight-theme-engine/i18n';
@@ -102,6 +102,13 @@ export const ArHeroSection = memo(function ArHeroSection({ data }: ArHeroSection
   const position = data.position ?? 1;
   const many = banners.length > 1;
   const [api, setApi] = useState<SwiperLike | null>(null);
+  // The slider is a web component that only exists once the SDK has loaded, and the server sends its skeleton. Until it
+  // is up, a copy of the first banner stands over the skeleton so the page's biggest paint does not wait for scripts.
+  const [poster, setPoster] = useState(true);
+  const hidePoster = useCallback(() => {
+    // Two frames: the laid-out slide paints under the copy first, so the swap leaves no gap.
+    requestAnimationFrame(() => requestAnimationFrame(() => setPoster(false)));
+  }, []);
   const { ready, playing, toggle } = useAutoplayControl(api);
 
   const sliderConfig = {
@@ -116,11 +123,120 @@ export const ArHeroSection = memo(function ArHeroSection({ data }: ArHeroSection
 
   if (!banners.length) return null;
 
+  // One banner, used for the slider's slides and for the first-paint copy of the first one (which adds its `media`).
+  const renderBanner = (item: ArHeroBanner, index: number, media?: ReactNode) => {
+    const title = localizedSetting(item.block_title, locale).trim();
+    const subtext = localizedSetting(item.subtext, locale).trim();
+    const buttonText = localizedSetting(item.button_text, locale).trim();
+    const href = linkSetting(item.url, locale);
+    const alignX = ALIGN_X(dropdownSetting(item.items_alignment));
+    const alignY = ALIGN_Y(dropdownSetting(item.items_alignment_vertical));
+    const desktop = cssUrl(imageSetting(item.desktop_bg, locale));
+    // A banner with no phone image uses its desktop one: the Twig leaves it blank, which on a phone is white
+    // light text on a white slide.
+    const mobile = cssUrl(imageSetting(item.mobile_bg, locale) || imageSetting(item.desktop_bg, locale));
+    const scrim =
+      Boolean(title || subtext) &&
+      (!title || isDefaultLight(item.blocktitle_color)) &&
+      (!subtext || isDefaultLight(item.subtext_color));
+    const button = buttonText && (
+      <ArButton
+        text={buttonText}
+        href={href}
+        color={item.button_text_color}
+        bg={item.button_bg}
+        transparent={item.transparent_button}
+        className={`block text-center rounded-md px-4 py-2 text-[clamp(0.75rem,0.6447rem+0.4493vw,1.094rem)] transition-all sm:px-7 ${
+          item.button_bottom ? 'ar-hero-slider__cta--bottom z-2 mt-auto self-center' : 'mt-2'
+        }`}
+      />
+    );
+
+    return (
+      <div
+        // The banners have no ids of their own; their order is their identity.
+        key={index}
+        className={`swiper-slide banner banner-${index + 1} ar-hero-slider__banner${scrim ? ' ar-hero-slider__banner--scrim' : ''} relative flex h-[100svh] flex-col overflow-hidden px-2 py-16 md:h-[90vh] md:px-4`}
+        style={{ '--ar-bg-desktop': desktop, '--ar-bg-mobile': mobile } as CSSProperties}
+      >
+        {media}
+        {!buttonText && href && (
+          <Link
+            to={href}
+            className="absolute inset-0 z-[5] h-full w-full"
+            aria-label={plainText(title || subtext) || undefined}
+          />
+        )}
+        <div
+          className={`text-wrapper container relative z-2 mx-auto flex h-full flex-col ${alignX} ${alignY}`}
+        >
+          <div className={`position flex flex-col gap-2 sm:gap-4 ${alignX}`}>
+            {title && (
+              <h2
+                data-swiper-parallax="-700"
+                className="blocktitle text-background text-[clamp(1.5rem,1.0408rem+1.9592vw,3rem)] font-medium leading-snug transition-all duration-700 ease-in-out"
+                style={{ color: colorVar(item.blocktitle_color) }}
+              >
+                {title}
+              </h2>
+            )}
+            {subtext && (
+              <p
+                data-swiper-parallax="-500"
+                className="subtext text-background text-[clamp(0.875rem,0.7602rem+0.4898vw,1.25rem)] font-light transition-all duration-700 ease-in-out"
+                style={{ color: colorVar(item.subtext_color) }}
+              >
+                {subtext}
+              </p>
+            )}
+            {!item.button_bottom && button}
+          </div>
+        </div>
+        {item.button_bottom && button}
+      </div>
+    );
+  };
+
+  // The slides' images are CSS backgrounds that only exist once the slider has hydrated, so the browser would not
+  // know the first one until then, and it is the page's largest paint. When the hero opens the page, ask for it in the
+  // head: the desktop image from md, the phone image below (which falls back to the desktop one, as the slide does).
+  const first = position === 1 ? banners[0] : undefined;
+  const firstDesktop = first ? imageSetting(first.desktop_bg, locale) : '';
+  const firstMobile = first ? imageSetting(first.mobile_bg, locale) || firstDesktop : '';
+
+  // The first-paint copy draws its image as an `<img>`, not a CSS background: `bootClient` (the engine) holds the app's
+  // scripts and stylesheet back until every `img[fetchpriority="high"]` has loaded, so with the image in the page's
+  // own queue the hero is on screen before they compete with it for bandwidth. `object-fit: cover` centred is the
+  // slide's `background: center / cover`; the phone's dark layer is drawn over it by CSS (`tallah-hero-first-screen.scss`).
+  const posterDesktop = imageSetting(banners[0].desktop_bg, locale);
+  const posterMobile = imageSetting(banners[0].mobile_bg, locale) || posterDesktop;
+  const posterMedia =
+    posterDesktop || posterMobile ? (
+      <picture className="ar-hero-poster__media">
+        {posterDesktop && posterDesktop !== posterMobile && <source media="(min-width: 768px)" srcSet={posterDesktop} />}
+        <img
+          className={`ar-hero-poster__img${posterDesktop ? '' : ' ar-hero-poster__img--phone-only'}`}
+          src={posterMobile || posterDesktop}
+          alt=""
+          decoding="async"
+          fetchPriority={position === 1 ? 'high' : undefined}
+        />
+      </picture>
+    ) : null;
+
   return (
     <section
       className={`AR-slider-hero-section AR-slider-hero-section-${position}${many ? ' ar-hero-slider--many' : ''}`}
       suppressHydrationWarning
     >
+      {firstDesktop && firstDesktop === firstMobile ? (
+        <link rel="preload" as="image" href={firstDesktop} fetchPriority="high" />
+      ) : (
+        <>
+          {firstDesktop && <link rel="preload" as="image" href={firstDesktop} fetchPriority="high" media="(min-width: 768px)" />}
+          {firstMobile && <link rel="preload" as="image" href={firstMobile} fetchPriority="high" media="(max-width: 767px)" />}
+        </>
+      )}
       <div className="wrapper">
         <div className="relative">
           <SallaSlider
@@ -131,82 +247,22 @@ export const ArHeroSection = memo(function ArHeroSection({ data }: ArHeroSection
             showControls={false}
             type="carousel"
             sliderConfig={sliderConfig}
-            onAfterInit={(event: { detail?: unknown }) => setApi((event.detail as SwiperLike) ?? null)}
+            onAfterInit={(event: { detail?: unknown }) => {
+              setApi((event.detail as SwiperLike) ?? null);
+              hidePoster();
+            }}
           >
             <div slot="items">
-              {banners.map((item, index) => {
-                const title = localizedSetting(item.block_title, locale).trim();
-                const subtext = localizedSetting(item.subtext, locale).trim();
-                const buttonText = localizedSetting(item.button_text, locale).trim();
-                const href = linkSetting(item.url, locale);
-                const alignX = ALIGN_X(dropdownSetting(item.items_alignment));
-                const alignY = ALIGN_Y(dropdownSetting(item.items_alignment_vertical));
-                const desktop = cssUrl(imageSetting(item.desktop_bg, locale));
-                // A banner with no phone image uses its desktop one: the Twig leaves it blank, which on a phone is white
-                // light text on a white slide.
-                const mobile = cssUrl(imageSetting(item.mobile_bg, locale) || imageSetting(item.desktop_bg, locale));
-                const scrim =
-                  Boolean(title || subtext) &&
-                  (!title || isDefaultLight(item.blocktitle_color)) &&
-                  (!subtext || isDefaultLight(item.subtext_color));
-                const button = buttonText && (
-                  <ArButton
-                    text={buttonText}
-                    href={href}
-                    color={item.button_text_color}
-                    bg={item.button_bg}
-                    transparent={item.transparent_button}
-                    className={`block text-center rounded-md px-4 py-2 text-[clamp(0.75rem,0.6447rem+0.4493vw,1.094rem)] transition-all sm:px-7 ${
-                      item.button_bottom ? 'ar-hero-slider__cta--bottom z-2 mt-auto self-center' : 'mt-2'
-                    }`}
-                  />
-                );
-
-                return (
-                  <div
-                    // The banners have no ids of their own; their order is their identity.
-                    key={index}
-                    className={`swiper-slide banner banner-${index + 1} ar-hero-slider__banner${scrim ? ' ar-hero-slider__banner--scrim' : ''} relative flex h-[100svh] flex-col overflow-hidden px-2 py-16 md:h-[90vh] md:px-4`}
-                    style={{ '--ar-bg-desktop': desktop, '--ar-bg-mobile': mobile } as CSSProperties}
-                  >
-                    {!buttonText && href && (
-                      <Link
-                        to={href}
-                        className="absolute inset-0 z-[5] h-full w-full"
-                        aria-label={plainText(title || subtext) || undefined}
-                      />
-                    )}
-                    <div
-                      className={`text-wrapper container relative z-2 mx-auto flex h-full flex-col ${alignX} ${alignY}`}
-                    >
-                      <div className={`position flex flex-col gap-2 sm:gap-4 ${alignX}`}>
-                        {title && (
-                          <h2
-                            data-swiper-parallax="-700"
-                            className="blocktitle text-background text-[clamp(1.5rem,1.0408rem+1.9592vw,3rem)] font-medium leading-snug transition-all duration-700 ease-in-out"
-                            style={{ color: colorVar(item.blocktitle_color) }}
-                          >
-                            {title}
-                          </h2>
-                        )}
-                        {subtext && (
-                          <p
-                            data-swiper-parallax="-500"
-                            className="subtext text-background text-[clamp(0.875rem,0.7602rem+0.4898vw,1.25rem)] font-light transition-all duration-700 ease-in-out"
-                            style={{ color: colorVar(item.subtext_color) }}
-                          >
-                            {subtext}
-                          </p>
-                        )}
-                        {!item.button_bottom && button}
-                      </div>
-                    </div>
-                    {item.button_bottom && button}
-                  </div>
-                );
-              })}
+              {banners.map((item, index) => renderBanner(item, index))}
             </div>
           </SallaSlider>
+
+          {poster && (
+            // Not read, tabbed to or clicked: the real slide takes over; `inert` also keeps it out of the accessibility tree.
+            <div className="ar-hero-poster" aria-hidden="true" inert>
+              {renderBanner(banners[0], 0, posterMedia)}
+            </div>
+          )}
 
           <div className="swiper-pagination ar-hero-slider__bullets" />
 

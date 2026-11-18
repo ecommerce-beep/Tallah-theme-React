@@ -34,10 +34,6 @@ vi.mock('@salla.sa/twilight-theme-engine/common', () => ({
   ),
 }));
 
-vi.mock('@salla.sa/twilight-components-react', () => ({
-  ProductsListSkeleton: () => <div data-testid="list-skeleton" />,
-}));
-
 vi.mock('../../../app/components/product', () => ({
   ProductCard: ({ product }: { product: { id?: number; name?: string } }) => (
     <div data-testid="product-card">{product.name}</div>
@@ -98,7 +94,28 @@ describe('ProductsSlider', () => {
     const { getByTestId } = renderWithClient(
       <ProductsSlider data={{ products: { source: 'related', source_value: 1 } }} />
     );
-    expect(getByTestId('list-skeleton')).toBeTruthy();
+    expect(getByTestId('products-carousel-skeleton')).toBeTruthy();
+  });
+
+  it('shows the loading row in the carousel shape (slides in one track), not a vertical grid', () => {
+    listMock.mockReturnValue(new Promise(() => {}));
+    const { getByTestId } = renderWithClient(
+      <ProductsSlider data={{ title: 'Picks', products: { source: 'related', source_value: 1 } }} />
+    );
+    const skeleton = getByTestId('products-carousel-skeleton');
+    expect(skeleton.querySelectorAll('.scroll-carousel__track > .s-products-carousel__slide')).toHaveLength(5);
+  });
+
+  it("shows nothing for the customer's 'buy again' list until it resolves: no title or placeholder to take back", async () => {
+    let resolve: (value: unknown) => void = () => {};
+    listMock.mockReturnValue(new Promise((r) => (resolve = r)));
+    const { container, queryByTestId, findByText } = renderWithClient(
+      <ProductsSlider data={{ title: 'Buy again', products: { source: 'reorder' } }} />
+    );
+    expect(container.textContent).toBe('');
+    expect(queryByTestId('products-carousel-skeleton')).toBeNull();
+    resolve({ items: [{ id: 1, name: 'One' }] });
+    expect(await findByText('Buy again')).toBeTruthy();
   });
 
   it('removes the whole block (title included) when the source resolves empty', async () => {

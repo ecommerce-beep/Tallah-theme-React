@@ -282,8 +282,13 @@ export const TallahProductCard = memo(function TallahProductCard({ product, imag
       <div className="s-product-card-content">
         {product.category?.name && (
           <div className="s-product-card-content-category">
+            {/* Without a category URL the name is plain text: a link to `#` has no `href` and is not crawlable. */}
             <h3>
-              <Link to={product.category.url ?? '#'}>{product.category.name}</Link>
+              {product.category.url ? (
+                <Link to={product.category.url}>{product.category.name}</Link>
+              ) : (
+                product.category.name
+              )}
             </h3>
           </div>
         )}
@@ -291,7 +296,7 @@ export const TallahProductCard = memo(function TallahProductCard({ product, imag
           {optionsOn && hasOptionControls && (
             // Over the image the same choices float on desktop; this copy is the phones' one.
             <div className={optionsOverImage ? 'md:hidden' : undefined}>
-              <CardOptions {...optionProps} />
+              <CardOptions {...optionProps} showLabels={optionsOverImage} />
             </div>
           )}
           <h3 className="s-product-card-content-title">

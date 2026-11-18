@@ -104,6 +104,19 @@ describe('ProductGallery media', () => {
   });
 });
 
+describe('ProductGallery placeholder', () => {
+  it('flags a gallery with thumbnails, so its skeleton leaves room for the row', () => {
+    const html = renderToString(<ProductGallery product={product} />);
+    expect(html).toContain('product-gallery--thumbs');
+  });
+
+  it('does not flag a single image', () => {
+    const single = { ...product, images: [product.images[0]] };
+    const html = renderToString(<ProductGallery product={single} />);
+    expect(html).not.toContain('product-gallery--thumbs');
+  });
+});
+
 describe('ProductGallery first image', () => {
   it('server-renders the first image over the slider, ahead of the app JS', () => {
     const html = renderToString(<ProductGallery product={product} />);

@@ -84,6 +84,15 @@ describe('TallahProductCard', () => {
     expect(container.querySelector('.s-product-card-price')?.textContent).toBe('200 SAR');
   });
 
+  it('shows a category without a URL as plain text, not as a link with no href', () => {
+    const base = make();
+    const { container } = render(
+      <TallahProductCard product={make({ category: { ...(base.category as object), url: undefined } as never })} />
+    );
+    expect(container.querySelector('.s-product-card-content-category a')).toBeNull();
+    expect(container.querySelector('.s-product-card-content-category h3')?.textContent).toBe('جاكيتات');
+  });
+
   it('shows the sale price with the old price, and a starting price for a product with variants', () => {
     const sale = render(
       <TallahProductCard product={make({ is_on_sale: true, sale_price: 150, regular_price: 200 })} />

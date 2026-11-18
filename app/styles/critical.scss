@@ -19,12 +19,23 @@
 
 @import './03-elements/buttons';
 
-@import './04-components/header';
+/* `04-components/header` (the engine header's `.site-header*`, 40KB) is not here: TALLAH renders `TallahHeader`, so none of
+   it matches the first paint, and the full sheet still has it. */
 @import './04-components/tallah-header';
+@import './04-components/tallah-sidecart-first-screen';
 @import './04-components/social';
 @import './04-components/mobile-page-title';
 @import './04-components/home-blocks';
+/* The rest of the home blocks and their cards are here too: the server renders every block, and the full sheet only
+   arrives after the first paint, so without them a card first shows at its image's natural height (1300px+ instead of
+   480px) and the special banner collapses. `tallah-home` brings `tallah-products-first-screen`, `tallah-home-sliders`
+   brings `tallah-hero-first-screen`. */
+@import './04-components/tallah-home';
+@import './04-components/tallah-home-sliders';
+@import './04-components/tallah-product-card';
+@import './04-components/tallah-product-card-options';
 @import './04-components/slider';
+@import './04-components/tallah-footer';
 
 @import './05-utilities/font-customization';
 

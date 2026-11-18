@@ -36,7 +36,7 @@ export const ArPromoBanner = memo(function ArPromoBanner({ data }: ArPromoBanner
 
   return (
     <section className={`AR-promo-banner AR-promo-banner-${position}`} suppressHydrationWarning>
-      <div className="flex flex-col items-center justify-between gap-6 py-8 lg:flex-row lg:gap-12 lg:px-10">
+      <div className="flex flex-col items-center justify-between gap-6 lg:flex-row lg:gap-12 lg:px-10">
         <div className="text text-font order-2 mx-auto flex max-w-full flex-col gap-4 text-center sm:max-w-3/4 lg:w-2/3 lg:max-w-full ltr:lg:text-left rtl:lg:text-right">
           {title && (
             <h2

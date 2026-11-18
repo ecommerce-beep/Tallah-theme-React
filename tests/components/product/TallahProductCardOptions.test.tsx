@@ -203,6 +203,26 @@ describe('TallahProductCard options (product_card_options)', () => {
     fireEvent.click(container.querySelectorAll('.card-floating-btn .tallah-card__swatch')[0]);
     expect(container.querySelector('.card-floating-btn .selected-color')?.textContent).toBe('أحمر');
   });
+
+  it('labels the phone copy too ("Color :" now, the name once picked), never with an invented value', async () => {
+    state.settings = { product_card_options: true, product_card_options_image: true };
+    const { container } = render(<TallahProductCard product={make()} />);
+    const phone = '.s-product-card-content-main .md\\:hidden';
+    await waitFor(() => expect(container.querySelector(`${phone} .tallah-card__swatch`)).toBeTruthy());
+    expect(container.querySelector(`${phone} .colors-wrapper > .block`)?.textContent?.trim()).toBe('Color :');
+    expect(container.querySelector(`${phone} .selected-color`)?.textContent).toBe('');
+    expect(container.textContent).not.toContain('null');
+    fireEvent.click(container.querySelectorAll(`${phone} .tallah-card__swatch`)[0]);
+    expect(container.querySelector(`${phone} .selected-color`)?.textContent).toBe('أحمر');
+  });
+
+  it('shows no labels when the options stay under the image (the setting is off), as the Twig', async () => {
+    state.settings = { product_card_options: true, product_card_options_image: false };
+    const { container } = render(<TallahProductCard product={make()} />);
+    await waitFor(() => expect(container.querySelector('.tallah-card__swatch')).toBeTruthy());
+    expect(container.querySelector('.selected-color')).toBeNull();
+    expect(container.querySelector('.selected-size')).toBeNull();
+  });
 });
 
 describe('TallahProductCard quick view', () => {

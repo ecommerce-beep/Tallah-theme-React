@@ -600,3 +600,9 @@ main > .s-block:nth-of-type(n + 4)[style*='min-height'] {
     display: none #{!important};
   }
 }
+
+/* The icon font's glyphs stay out of sight until it has loaded, instead of showing as boxes (`lib/iconFontGate.ts`,
+   which marks the page while it is pending). Only the glyph is hidden: the icon keeps its box, so nothing moves. */
+html[data-icons='pending'] [class*='sicon-']::before {
+  visibility: hidden;
+}

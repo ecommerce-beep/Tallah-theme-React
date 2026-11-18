@@ -155,7 +155,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
     // too, visually shifting the whole gallery down 96px while the content
     // after it (ProductDetails' title / tags) still flowed right where the
     // gallery would have sat unshifted — the two rendered on top of each other.
-    <div className={galleryClassName(images[0])}>
+    <div className={galleryClassName(images[0], hasManyImages)}>
       {gridDesktop && (
         <div
           className={`tallah-gallery-grid grid-cols-2 gap-2 lg:gap-4 ${mobileSlider ? 'hidden lg:grid' : 'grid'}`}
@@ -261,10 +261,12 @@ export function ProductGallery({ product }: ProductGalleryProps) {
   );
 }
 
-function galleryClassName(first: ProductImage | undefined): string {
+function galleryClassName(first: ProductImage | undefined, hasThumbs: boolean): string {
   return [
     'product-gallery',
     first?.three_d_image_url && 'product-gallery--model',
+    // Tells the server skeleton to leave room for the thumbnail row the slider adds below the frame.
+    hasThumbs && 'product-gallery--thumbs',
     // single.twig: the gallery column is 66% of the row and sticks while the buy box scrolls.
     'sidebar relative !w-full lg:!w-[66%] lg:!sticky lg:top-8 lg:pb-16 shrink-0',
   ]
@@ -422,13 +424,14 @@ function ImageSlide({
       aria-label={product.name}
       className={`swiper-slide magnify-wrapper homeslider__slide ${image.video_url ? 'video-entry' : ''}`}
     >
-      <div className={`w-full ${loaded ? '' : 'aspect-square bg-gray-100 animate-pulse'}`}>
+      <div className={`h-full w-full ${loaded ? '' : 'aspect-square bg-gray-100 animate-pulse'}`}>
+        {/* The engine's `Image` brings its own `object-cover`, which beats the `object-contain` class: the fit is set inline. */}
         <Image
           id={String(image.id)}
           src={image.url}
           alt={image.alt || product.name}
-          className={`h-full w-full object-${objectFit}`}
-          aspectRatio="1/1"
+          className="h-full w-full"
+          style={{ objectFit }}
           priority={index === 0}
           noWrapper
           onLoad={() => setLoaded(true)}
