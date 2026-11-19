@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "build:vercel": "vite build && node scripts/vercel/build-output.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "check:manifest": "twilight-check-manifest",
