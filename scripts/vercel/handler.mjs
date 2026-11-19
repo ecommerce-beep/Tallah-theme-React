@@ -13,7 +13,9 @@ import worker from './index.js';
 // called "tallah-theme-react.vercel.app". The engine's documented injection
 // point (__SALLA_RUNTIME_ENV__) pins the store instead. It is published to the
 // browser by the engine, so SSR and hydration query the same store.
-const PREVIEW_STORE = process.env.PREVIEW_STORE_DOMAIN || process.env.VITE_STORE_DOMAIN || 'demostore.salla.sa';
+// Default: Salla's public Raed demo store (demostore.salla.sa/ar/dev-vgckq3fssfhjewwi).
+// Override per environment with PREVIEW_STORE_DOMAIN (a store username or id).
+const PREVIEW_STORE = process.env.PREVIEW_STORE_DOMAIN || process.env.VITE_STORE_DOMAIN || 'dev-vgckq3fssfhjewwi';
 globalThis.__SALLA_RUNTIME_ENV__ = {
   ...(globalThis.__SALLA_RUNTIME_ENV__ ?? {}),
   storeIdentifier: PREVIEW_STORE,
